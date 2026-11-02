@@ -1,0 +1,6 @@
+**/gpui-kit.d.ts
+**/herdr.d.ts
+**/jsconfig.json
+.superpowers/
+.tmp/
+node_modules/

@@ -1,0 +1,9 @@
+{
+  "place": "none",
+  "title": "Kolczyk",
+  "kolczyk_version": "0.1.0",
+  "cloned_from": {
+    "name": "spaces",
+    "version": "0.1.11"
+  }
+}
