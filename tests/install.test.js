@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
-test('failed native check restores installed mod and leaves layout untouched', () => {
+test('failed native check restores installed mod and leaves layout untouched', { skip: process.platform !== 'win32' }, () => {
   const dir = mkdtempSync(join(tmpdir(), 'kolczyk-install-'));
   const home = join(dir, 'home'); const bin = join(dir, 'bin');
   mkdirSync(join(home, 'mods/kolczyk'), { recursive: true });

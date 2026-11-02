@@ -160,3 +160,25 @@ size, native monogram and emoji forms show colors and shapes without scrolling;
 Adjust displays both samples. Small windows retain scrolling and a fixed footer.
 All 52 tests, ten native routes and the installed root check passed. Publication
 screenshots were refreshed and the visual-test drafts were canceled.
+
+## Optional Node asset helper
+
+Removed the runtime PowerShell helper. The native UI has no external runtime
+requirement; only Automatic discovery and new Image imports use an explicitly
+installed Node 22+ package. The package includes sharp, fast-xml-parser and
+bmp-js with a lockfile. Missing Node or package dependencies leave manual modes
+available and show setup instructions. Existing imported images still render.
+
+Verification: 56 tests passed, including the real Node CLI, PNG/DIB ICO and BMP
+conversion, traversal/symlink rejection, oversized files, SVG references,
+missing package exit 78, and missing-Node picker behavior. All ten eager native
+routes and the installed root check passed. npm audit reported no known
+vulnerabilities for the helper dependencies at the time of this check.
+
+A temporary native acceptance mod exercised the actual Herdr exec bridge:
+without installed dependencies it returned available=false; after installation
+it discovered a project favicon outside the home directory, imported it and
+rendered the cached SVG. The acceptance overlay was closed and its mod removed.
+The installed Kolczyk now includes the optional helper package for local use.
+Linux/macOS native acceptance has not been performed. PowerShell scripts remain
+optional Windows installation/development tools, not runtime requirements.

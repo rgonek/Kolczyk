@@ -1,0 +1,9 @@
+{
+  "name": "kolczyk-assets",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Optional local favicon and image helper for the Kolczyk Herdr mod",
+  "engines": { "node": ">=22" },
+  "dependencies": { "sharp": "0.35.5", "fast-xml-parser": "5.11.2", "bmp-js": "0.1.0" }
+}

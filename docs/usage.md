@@ -12,11 +12,11 @@ herdr-app do kolczyk.icon
 | Mode | What it does |
 | --- | --- |
 | **Default Herdr** | Restores the original initial on a colored tile, space number in the compact rail, or branch-only worktree marker. Saving clears custom icon, background and adjustment settings for that space. |
-| **Automatic** | Finds a favicon in the local project, falling back to initials derived from the current space name. |
+| **Automatic** | Requires the optional Node helper. Finds a favicon in the local project, falling back to initials derived from the current space name. |
 | **Icons** | Browses 2,292 Lucide, 287 Feather and 6,144 Hugeicons Free Stroke Rounded icons. |
 | **Emoji** | Offers quick choices and accepts pasted emoji, including flags and combined sequences. |
 | **Monogram** | Accepts one or two letters or numbers. |
-| **Image** | Uses a project image, local file path or dropped file. |
+| **Image** | Requires the optional Node helper for new imports. Uses a project image, local file path or dropped file. |
 
 In Icons, **Popular** shows a shortlist; **All** opens the complete catalogue.
 Search and the **All categories** topic filter work together. Previous / Next
@@ -67,9 +67,9 @@ Remote spaces support manual choices, but their remote favicons are not fetched.
 
 ## Image limits
 
-- Supported inputs: SVG, PNG, ICO, JPEG, GIF and BMP. WebP depends on the Windows
-  decoder. Raster images and ICO files are converted to PNG; GIF becomes a
-  static icon.
+- Supported inputs: SVG, PNG, ICO, JPEG, GIF, WebP and uncompressed BMP.
+  PNG-backed and uncompressed 24/32-bit ICO entries are supported; other ICO
+  encodings are rejected. Raster inputs become static PNG.
 - Inputs are limited to **2 MiB**; raster dimensions to **4096 × 4096**.
 - SVG files must be self-contained, without scripts or external resources.
   References must be local `#fragments`; relative files, remote URLs and embedded
@@ -104,7 +104,8 @@ installation. Node.js is not required to run the mod.
 Kolczyk contains its own sidebar and context menu, based on Herdr spaces
 **0.1.11**. New upstream sidebar features do not automatically update this copy.
 Stock Herdr commands, `workspace-chrome` SVGs and `worktree` dialogs remain
-dependencies. Local discovery and image import require Windows and PowerShell.
+dependencies. Discovery and import use the [optional Node helper](../mods/kolczyk/node-helper/README.md).
+The base mod requires neither Node.js nor PowerShell.
 
 Herdr stores preferences in shared state under `kolczyk.spaces`, keyed by space
 ID. Preferences for disconnected machines are retained. Default Herdr keeps a
@@ -118,7 +119,8 @@ Removing preferences or cached images is not required to disable Kolczyk.
 
 ## Development checks
 
-Development tests require Node.js 24. Run from the repository root:
+Development tests require Node.js 24 and helper dependencies. First run
+`npm ci --prefix mods/kolczyk/node-helper`, then run from the repository root:
 
 ```powershell
 npm test

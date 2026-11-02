@@ -29,7 +29,7 @@ Suggested description:
 
 > Native space icons for Herdr: project favicons, icon libraries, emoji, monograms and images.
 
-Topics: `herdr-mod`, `herdr`, `gpui`, `customization`, `icons`, `windows`.
+Topics: `herdr-mod`, `herdr`, `gpui`, `customization`, `icons`, `windows`, `linux`, `macos`.
 The `herdr-mod` topic is required for directory discovery.
 
 Use `preview.png` as the repository social preview. It is a presentation of a

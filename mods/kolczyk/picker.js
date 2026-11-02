@@ -104,6 +104,7 @@ export default class Picker extends View {
   }
 
   save() {
+    if (this.draft.kind === 'auto' && this.info.available === false) return;
     const error = validateDraft(this.draft);
     if (error || this.importing || !spaces().some(s => s.id === this.id)) { this.error = error || 'This space is no longer available.'; return; }
     if (this.draft.kind === 'lucide' && !LIBRARIES[this.draft.library]?.includes(this.draft.name)) { this.error = 'Choose an icon from the selected catalogue.'; return; }
@@ -329,6 +330,10 @@ export default class Picker extends View {
       .child(this.label('Save clears this space’s custom icon, background and adjustments.'));
     if (this.draft.kind === 'lucide') return this.iconGrid();
     if (this.draft.kind === 'emoji') return this.emojiGrid();
+    if (['auto', 'image'].includes(this.draft.kind) && this.info.available === false) return v_flex().gap(8)
+      .child(this.label(this.info.message))
+      .child(this.label('Install Node.js 22+ and run npm install in the installed mods/kolczyk/node-helper folder.'))
+      .child(this.button('ki-helper-retry', 'Check again', cx => this.reload(cx)));
     if (this.draft.kind === 'image') return this.images();
     if (this.draft.kind === 'monogram') {
       const invalid = !/^[\p{L}\p{N}]{1,2}$/u.test(this.draft.text.normalize('NFKC').trim().toUpperCase());
@@ -368,6 +373,6 @@ export default class Picker extends View {
       .when(Boolean(error), el => el.child(div().id('ki-save-error').flex_none().text_size(11).text_color(t.blocked).child(error)))
       .child(h_flex().h(30).flex_none().gap(8).justify_end()
         .child(this.button('ki-cancel', 'Cancel', () => closeOverlay(props()?.overlay)))
-        .child(this.button('ki-save', 'Save icon', () => this.save(), true, Boolean(invalid) || this.importing || !this.space)));
+        .child(this.button('ki-save', 'Save icon', () => this.save(), true, Boolean(invalid) || this.importing || !this.space || (d.kind === 'auto' && this.info.available === false))));
   }
 }

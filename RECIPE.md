@@ -43,7 +43,7 @@ Choosing another icon type preserves its background and foreground settings.
 Automatic scans the live local project and falls back to fresh name-derived
 initials. It follows folder changes, refreshes at most once a minute in an active
 window, and can be refreshed explicitly. Remote spaces support manual choices;
-their favicons are not fetched in this Windows version.
+their favicons are not fetched by the local helper.
 
 ## Built from
 
@@ -54,7 +54,9 @@ until a mouse event invalidates it. Keep retained views only for picker/menu rol
 `main.js` routes `props.mode` to sidebar (`spaces.js`), menu (`menu.js`) or picker
 (`picker.js`). Menu props follow stock `{tab, target}`; picker uses `{space}`.
 `avatar.js` paints the shared appearance model; `model.js` validates choices;
-`assets.js` calls `assets.ps1` using `exec('powershell.exe', ...)`.
+`assets.js` calls optional `node-helper/main.mjs` with `exec('node', ...)`.
+Without Node or its package dependencies, manual modes work and Automatic/Image
+show setup instructions. Imported images remain renderable. No runtime PowerShell.
 
 Uses Herdr spaces, panes, machines, shared/setShared, theme, layout, window,
 exec/hc, watchFolder, nextCommand and overlay functions. Existing git operations

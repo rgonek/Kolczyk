@@ -28,6 +28,24 @@ test('every disabled draft exposes its validation message beside the footer', ()
   assert.ok(find(p.render(), 'ki-save-error'));
 });
 
+test('missing optional helper leaves manual modes saveable and explains Automatic/Image', async () => {
+  state.exec = async command => {
+    if (command === 'git') return { code: 1, stdout: '' };
+    throw new Error('node not installed');
+  };
+  const p = picker(null); await Promise.all(state.tasks);
+  assert.equal(p.info.available, false);
+  p.draft.kind = 'auto';
+  assert.ok(find(p.render(), 'ki-helper-retry'));
+  assert.equal(find(p.render(), 'ki-save').values.disabled[0], true);
+  p.save(); assert.ok(state.shared['kolczyk.spaces']?.['local-space'] == null);
+  p.draft.kind = 'monogram'; p.draft.text = 'OK';
+  assert.equal(find(p.render(), 'ki-save').values.disabled[0], false);
+  p.draft.kind = 'image';
+  assert.ok(find(p.render(), 'ki-helper-retry'));
+  assert.equal(find(p.render(), 'ki-image-import'), null);
+});
+
 test('catalogue grids have named native buttons and roving arrow selection', () => {
   const p = picker(null); p.draft.kind = 'lucide'; p.browse = 'all';
   const first = find(p.render(), 'ki-icon-a-arrow-down');
