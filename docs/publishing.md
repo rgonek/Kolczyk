@@ -32,9 +32,7 @@ Suggested description:
 Topics: `herdr-mod`, `herdr`, `gpui`, `customization`, `icons`, `windows`, `linux`, `macos`.
 The `herdr-mod` topic is required for directory discovery.
 
-Use `preview.png` as the repository social preview. It is a presentation of a
-real native picker screenshot, with editorial text beside it. The uncomposed
-screenshots are in `docs/images/`. Regenerate the presentation image with:
+Use `preview.png` as the repository social preview. It combines an illustrated mountain scene with a real native picker screenshot. The uncomposed screenshot and illustration background are in `docs/images/`. Regenerate the presentation image with:
 
 ```powershell
 powershell.exe -NoProfile -File scripts/create-preview.ps1
