@@ -27,12 +27,12 @@ is required.
 
 Suggested description:
 
-> Give each space its own icon and color. Find the right one at a glance.
+> Give your Herdr spaces recognizable icons and colors. Choose a project favicon, a bundled icon, emoji, initials or your own image, with a native picker and a preview at sidebar size.
 
 Topics: `herdr-mod`, `herdr`, `gpui`, `customization`, `icons`, `windows`, `linux`, `macos`.
 The `herdr-mod` topic is required for directory discovery.
 
-Use `preview.png` as the repository social preview. It combines an illustrated mountain scene with a real native picker screenshot. The uncomposed screenshot and illustration background are in `docs/images/`. Regenerate the presentation image with:
+Use `preview.png` as the repository social preview. It combines an illustrated mountain scene with real native picker and sidebar screenshots. The sidebar shows five spaces created for the presentation: Moonshot, Wildflower, Northstar, Field Notes and Campfire. The original screenshots and illustration background are in `docs/images/`. Regenerate the presentation image with:
 
 ```powershell
 powershell.exe -NoProfile -File scripts/create-preview.ps1
@@ -42,7 +42,7 @@ powershell.exe -NoProfile -File scripts/create-preview.ps1
 
 1. Run `npm test` and `powershell.exe -NoProfile -File scripts/check.ps1`.
 2. Review the README, recipe, licenses and screenshots. Keep `.tmp/` and local
-   Herdr state out of Git; the screenshots contain only the picker.
+   Herdr state out of Git; screenshots contain only the picker and presentation spaces.
 3. Commit the prepared files and push the intended branch to GitHub.
 4. With the owner's explicit approval, make the repository public and apply the
    description and topics above. Check that the default branch contains the
@@ -57,7 +57,7 @@ must be checked after publication. Herdr does not review community mods.
 ## Updating the screenshots
 
 Capture the running native picker with `herdr-app shot`. Crop tightly around
-the dialog before placing screenshots in `docs/images/`; exclude terminals,
-project paths and unrelated spaces. Use a draft appearance and cancel afterward
+the dialog or presentation spaces before placing screenshots in `docs/images/`;
+exclude terminals, project paths and unrelated spaces. Use a draft appearance and cancel afterward
 so presentation work does not change the user's saved icon. Keep the screenshot
 and README aligned with the shipped behavior.

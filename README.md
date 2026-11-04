@@ -1,26 +1,30 @@
-# Kolczyk - Space icons
+# Kolczyk: icons and colors for your Herdr spaces
 
-**Give each space its own icon and color. Find the right one at a glance.**
+Give your Herdr spaces icons and colors you can recognize while switching
+between projects. Use a project's own favicon, pick a symbol from the bundled
+icon libraries, or choose an emoji, initials or an image of your own. Kolczyk
+shows your choices in the spaces sidebar and compact rail.
 
-Kolczyk is a native Herdr mod that puts project icons, emoji and little personal
-touches in your spaces sidebar. Right-click a space, choose **Change icon…**,
-and make it easier to spot among the rest of your work.
+Right-click a space and choose **Change icon…** to open the native picker.
+Try a background color and shape, then adjust the symbol's size and position
+with a preview of how it will look in the sidebar. Save when it looks right,
+or cancel to keep the icon you had.
 
-![Kolczyk's native space-icon picker in Herdr](preview.png)
+![Kolczyk's native picker beside spaces named Moonshot, Wildflower, Northstar, Field Notes and Campfire with custom icons](preview.png)
 
-*A real native picker screenshot, arranged for presentation.*
+*Real native picker and sidebar screenshots, arranged on an illustrated background.*
 
-## A small detail, your way
+## Choose how each space looks
 
-- **Let the project introduce itself.** Automatic finds a local project favicon
+- Automatic finds a local project favicon
   and falls back to initials when there isn't one.
-- **Pick a symbol.** Browse Lucide, Feather and Hugeicons Free, with offline
+- Browse Lucide, Feather and Hugeicons Free, with offline
   search, categories and a Popular shortlist. Or use an emoji, a one- or
   two-character monogram, or your own image.
-- **Make it fit.** Choose colors and a circle, square or rounded-square
+- Choose colors and a circle, square or rounded-square
   background. Adjust the symbol's size and position while previewing it at
   sidebar size.
-- **Keep it familiar.** The picker follows Herdr's theme and works with both
+- The picker follows Herdr's theme and works with both
   the full sidebar and compact rail. **Default Herdr** restores the stock marker.
 
 Everything is rendered with native GPUI controls. Icon libraries are bundled;
@@ -88,9 +92,9 @@ keyboard controls, backups and removal.
 
 ## Why “Kolczyk”?
 
-*Kolczyk* is Polish for an earring—and for an animal's ear tag. Herdr has a
-flock; this mod gives each sheep a recognizable tag. A small mark to help you
-find the space you meant.
+*Kolczyk* is Polish for an earring and for an animal's ear tag. Herdr has a
+flock; this mod gives each sheep a recognizable tag so you can find the space
+you meant.
 
 ## Credits
 
