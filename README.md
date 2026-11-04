@@ -1,4 +1,4 @@
-# Kolczyk: icons and colors for your Herdr spaces
+# Kolczyk - Space icons
 
 Give your Herdr spaces icons and colors you can recognize while switching
 between projects. Use a project's own favicon, pick a symbol from the bundled
