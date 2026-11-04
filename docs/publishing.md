@@ -27,7 +27,7 @@ is required.
 
 Suggested description:
 
-> Native space icons for Herdr: project favicons, icon libraries, emoji, monograms and images.
+> Give each space its own icon and color. Find the right one at a glance.
 
 Topics: `herdr-mod`, `herdr`, `gpui`, `customization`, `icons`, `windows`, `linux`, `macos`.
 The `herdr-mod` topic is required for directory discovery.

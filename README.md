@@ -1,6 +1,6 @@
-# Kolczyk 🐑
+# Kolczyk - Space icons
 
-**Give every Herdr space a familiar face.**
+**Give each space its own icon and color. Find the right one at a glance.**
 
 Kolczyk is a native Herdr mod that puts project icons, emoji and little personal
 touches in your spaces sidebar. Right-click a space, choose **Change icon…**,

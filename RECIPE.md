@@ -1,4 +1,6 @@
-# Kolczyk — Give every Herdr space a familiar face
+# Kolczyk - Space icons
+
+Give each space its own icon and color. Find the right one at a glance.
 
 A native Herdr space-icon picker. Right-click a space, choose **Change icon…**,
 then select Default Herdr, Automatic, a Lucide, Feather or Hugeicons icon, emoji, monogram or imported
