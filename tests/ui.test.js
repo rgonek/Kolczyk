@@ -359,3 +359,16 @@ test('root rerender after Save updates sidebar without a child mouse event', () 
   p.draft.emoji = '🚀'; p.save();
   assert.ok(text(root.render(rootCx)).includes('🚀'), 'shared-state root rerender must show saved icon immediately');
 });
+
+test('sidebar reads shared icon state once per render regardless of space count', () => {
+  const original = state.spaces;
+  state.spaces = Array.from({ length: 30 }, (_, i) => ({ id: `budget-${i}`, name: `Project ${i}`, folder: `D:/p${i}`, tabs: [] }));
+  const counts = {};
+  state.sharedReads = counts;
+  try {
+    const view = new Spaces(); view.init({}, cx);
+    view.render();
+    assert.equal(counts['kolczyk.spaces'], 1);
+    assert.equal(counts['kolczyk.favicons'], 1);
+  } finally { state.spaces = original; delete state.sharedReads; }
+});

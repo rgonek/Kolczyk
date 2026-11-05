@@ -228,18 +228,18 @@ export default class Spaces extends View {
   }
 
   spaceAvatar(w, size = 22) {
-    const value = (shared('kolczyk.spaces') ?? {})[w.id];
+    const value = (this.renderIcons ?? shared('kolczyk.spaces') ?? {})[w.id];
     if (value?.kind === 'herdr') return herdrAvatar(w.name, w.id);
-    const key = where(w, panes());
+    const key = where(w, this.renderPanes ?? panes());
     const local = this.iconCache[key];
-    const refreshed = (shared('kolczyk.favicons') ?? {})[w.id];
+    const refreshed = (this.renderFavicons ?? shared('kolczyk.favicons') ?? {})[w.id];
     const latest = refreshed?.key === key && refreshed.at > (local?.at ?? 0) ? refreshed : local;
     return avatar(value, w.name, latest?.path ?? null, size);
   }
 
   // Spaces in order, each worktree space moved under its main checkout's.
   ordered() {
-    const sp = spaces(), ps = panes();
+    const sp = spaces(), ps = this.renderPanes ?? panes();
     const ready = (w) => this.shown.has(w.id) || where(w, ps) in this.git || Date.now() - (this.born[w.id] ??= Date.now()) > 1500;
     for (const w of sp) if (!this.shown.has(w.id) && ready(w)) this.shown.add(w.id);
     const list = sp.map((w, i) => ({ w, i, g: this.git[where(w, ps)] ?? null })).filter((r) => this.shown.has(r.w.id));
@@ -322,7 +322,7 @@ export default class Spaces extends View {
 
   row({ w, i, g, tree }, t) {
     const on = w.active;
-    const stock = (shared('kolczyk.spaces') ?? {})[w.id]?.kind === 'herdr';
+    const stock = (this.renderIcons ?? shared('kolczyk.spaces') ?? {})[w.id]?.kind === 'herdr';
     return v_flex()
       .relative()
       .id(`space-${w.id}`)
@@ -383,13 +383,17 @@ export default class Spaces extends View {
       .hover((s) => s.bg(t.hover))
       .on_click(() => run("space.select", { id: w.id }))
       .on_mouse_down('right', () => this.menu(w))
-      .child((shared('kolczyk.spaces') ?? {})[w.id]?.kind === 'herdr'
+      .child((this.renderIcons ?? shared('kolczyk.spaces') ?? {})[w.id]?.kind === 'herdr'
         ? div().text_color(w.active ? t.foreground : t.muted).child(String(i + 1))
         : this.spaceAvatar(w, 20))
       .child(div().text_color(tone(t, w.status)).child(glyph(w.status)));
   }
 
   render() {
+    // Herdr copies live data on every read; share one snapshot across all rows.
+    this.renderIcons = shared('kolczyk.spaces') ?? {};
+    this.renderFavicons = shared('kolczyk.favicons') ?? {};
+    this.renderPanes = panes();
     const t = theme();
     const collapsed = narrow();
     const palette = ["ansi6", "ansi3", "ansi4", "ansi5", "ansi2", "ansi1"];
