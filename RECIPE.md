@@ -1,10 +1,6 @@
-# Kolczyk - Space icons
+# Customize space icons & colors
 
-Give your Herdr spaces icons and colors you can recognize while switching between projects. Use a project's own favicon, browse the bundled Lucide, Feather and Hugeicons libraries, or choose an emoji, initials or an image of your own. Right-click a space to open the native picker, try a background color and shape, and adjust the symbol with a preview at sidebar size. Your choices appear in both the spaces sidebar and compact rail, so the projects you use every day are easier to spot.
-
-A native Herdr space-icon picker. Right-click a space, choose **Change icon…**,
-then select Default Herdr, Automatic, a Lucide, Feather or Hugeicons icon, emoji, monogram or imported
-image. Every custom type can sit on a colored circle, square or rounded square.
+Kolczyk gives your Herdr spaces recognizable icons in both the sidebar and compact rail. Use a project's favicon, search the bundled Lucide, Feather and Hugeicons libraries, or choose an emoji, initials or your own image. Right-click a space to open the picker, choose a background color and shape, and adjust the symbol's size and position with a preview at sidebar size. Changes stay in a draft until you save; Cancel keeps the existing icon. Built-in icons, emoji and initials work without extra tools. Automatic favicon discovery and image import need the optional Node helper; remote spaces support manual choices. Default Herdr restores the stock marker.
 
 ![Kolczyk](preview.png)
 
