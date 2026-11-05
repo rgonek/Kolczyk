@@ -42,7 +42,7 @@ export const InputState = { new: ({ value = '' } = {}) => {
   return { text: value, value() { return this.text; }, on(event, fn) { events[event] = fn; }, set_value(value) { this.text = value; events.change?.({}, cx); }, focus() {}, set_selected_range() {} };
 } };
 export const props = () => state.props;
-export const shared = key => structuredClone(state.shared[key]);
+export const shared = key => { if (state.sharedReads) state.sharedReads[key] = (state.sharedReads[key] ?? 0) + 1; return structuredClone(state.shared[key]); };
 export const setShared = (key, value) => { state.shared[key] = structuredClone(value); };
 export const spaces = () => state.spaces;
 export const panes = () => [];
