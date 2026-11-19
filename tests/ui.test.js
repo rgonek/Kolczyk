@@ -74,6 +74,9 @@ test('dialog caps height while keeping sidebar samples inside Adjust rather than
 
 test('category status gives its name and filtered result count', () => {
   const p = picker(null); p.draft.kind = 'lucide';
+  const menu = find(p.render(), 'ki-categories');
+  assert.equal(find(menu, 'ki-category-arrows'), null);
+  menu.handlers.on_open_change(true, cx);
   find(p.render(), 'ki-category-arrows').handlers.on_click({}, cx);
   p.search.set_value('arrow-down');
   assert.match(find(p.render(), 'ki-catalogue-status').nodes.join(''), /^Arrows · \d+ matches$/);
@@ -284,6 +287,9 @@ test('monogram validation is inline and omitted until editing', () => {
 
 test('category filtering composes with search and library switching resets category', () => {
   const p = picker(null); p.draft.kind = 'lucide';
+  const menu = find(p.render(), 'ki-categories');
+  assert.equal(find(menu, 'ki-category-arrows'), null);
+  menu.handlers.on_open_change(true, cx);
   find(p.render(), 'ki-category-arrows').handlers.on_click({}, cx);
   assert.equal(p.category, 'arrows');
   p.search.set_value('arrow-down');

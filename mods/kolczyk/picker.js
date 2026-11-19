@@ -292,17 +292,20 @@ export default class Picker extends View {
     const categories = CATEGORIES[this.draft.library] ?? {};
     const choose = key => { this.category = key; this.browse = 'all'; this.page = 0; this.categoryOpen = false; };
     const title = key => key === 'all' ? 'All categories' : key.replace(/-/g, ' ').replace(/^./, c => c.toUpperCase());
-    const list = Object.keys(categories).filter(key => key.includes(this.categoryQuery.trim().toLowerCase().replace(/\s+/g, '-')));
-    const panel = v_flex().w(250).p(10).gap(7).rounded(8).border_1().border_color(theme().border).bg(theme().popover)
-      .child(this.field(this.categoryInput, 'ki-category-search'))
-      .child(this.button('ki-category-all', 'All categories', () => choose('all'), this.category === 'all'))
-      .child(v_flex().h(230).overflow_y_scrollbar().gap(2).children(list.map(key =>
-        this.button(`ki-category-${key}`, `${title(key)} (${categories[key].length})`, () => choose(key), this.category === key).flex_none())));
+    let panel = null;
+    if (this.categoryOpen) {
+      const list = Object.keys(categories).filter(key => key.includes(this.categoryQuery.trim().toLowerCase().replace(/\s+/g, '-')));
+      panel = v_flex().w(250).p(10).gap(7).rounded(8).border_1().border_color(theme().border).bg(theme().popover)
+        .child(this.field(this.categoryInput, 'ki-category-search'))
+        .child(this.button('ki-category-all', 'All categories', () => choose('all'), this.category === 'all'))
+        .child(v_flex().h(230).overflow_y_scrollbar().gap(2).children(list.map(key =>
+          this.button(`ki-category-${key}`, `${title(key)} (${categories[key].length})`, () => choose(key), this.category === key).flex_none())));
+    }
     return Popover.new('ki-categories').open(Boolean(this.categoryOpen))
       .on_open_change((open, cx) => { this.categoryOpen = open; cx.notify(); })
       .trigger(Button.new('ki-category-trigger').tab_index(0).accessibility_label(`Category: ${title(this.category)}`).h(30).px(10).items_center().rounded(7).border_1().border_color(theme().border).bg(theme().raised).cursor_pointer()
         .child(div().max_w(175).truncate().text_size(12).text_color(theme().foreground).child(title(this.category) + ' ▾')))
-      .content(panel);
+      .content(panel ?? div());
   }
 
   moveIcon(dx, dy, cx) {
