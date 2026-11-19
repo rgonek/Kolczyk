@@ -31,6 +31,9 @@ function place(s, ps) {
   return ps.find((p) => tabs.has(p.tab) && p.cwd)?.cwd || s.folder;
 }
 const rowHeight = ({ tree }) => (tree ? 28 : 30);
+const rowPadding = 8;
+const rowGap = 9;
+const rowAvatarSize = 22;
 const where = (s, ps) => JSON.stringify([s.machine ?? null, place(s, ps)]);
 const base = (path) => path.replace(/\/+$/, "").split("/").pop();
 // Changes made outside Herdr (an editor's save, a commit in another app): looked
@@ -297,8 +300,10 @@ export default class Spaces extends View {
           cx.notify();
         });
       if (!folder) return entry.children(rows.map(draw));
-      const header = h_flex().id(folder.id).h(28).flex_none().items_center().gap(5).px(collapsed ? 1 : 6)
-        .rounded(6).cursor_pointer().hover(s => s.bg(t.hover))
+      const header = h_flex().id(folder.id).h(collapsed ? 26 : rowHeight({ tree: false })).flex_none().items_center()
+        .when(collapsed, el => el.justify_center())
+        .when(!collapsed, el => el.gap(rowGap).px(rowPadding))
+        .rounded(8).cursor_pointer().hover(s => s.bg(t.hover))
         .on_mouse_down('left', () => {
           this.pressed = null;
           this.pressedSpace = null;
@@ -316,8 +321,8 @@ export default class Spaces extends View {
           cx.notify();
         })
         .on_click(() => changeFolder(folder.id, { folded: !folder.folded }))
-        .child(avatar(folder.appearance ?? DEFAULT_FOLDER_ICON, folder.name, null, 20))
-        .when(!collapsed, el => el.child(div().flex_1().truncate().child(folder.name))
+        .child(avatar(folder.appearance ?? DEFAULT_FOLDER_ICON, folder.name, null, collapsed ? 20 : rowAvatarSize))
+        .when(!collapsed, el => el.child(div().flex_1().truncate().text_color(t.foreground).child(folder.name))
           .child(svg(`mods/workspace-chrome/chevron-${folder.folded ? 'right' : 'down'}.svg`).size(11).text_color(t.dim)));
       return entry.child(header).children(folder.folded ? [] : rows.map(row => {
         const content = draw({ ...row, folderId: folder.id });
@@ -398,7 +403,7 @@ export default class Spaces extends View {
     return v_flex()
       .relative()
       .id(`space-${w.id}`)
-      .px(8)
+      .px(rowPadding)
       .h(rowHeight({ tree }))
       .flex_none()
       .justify_center()
@@ -441,10 +446,14 @@ export default class Spaces extends View {
       .on_mouse_down("right", () => this.menu(w, parent))
       .child(
         h_flex()
-          .gap(9)
+          .gap(rowGap)
           .items_center()
           .when(Boolean(tree), el => el.pl(stock ? 22 : 12).child(svg("mods/workspace-chrome/branch.svg").size(stock ? 13 : 11).text_color(t.dim)))
-          .when(!tree || !stock, el => el.child(this.spaceAvatar(w, tree ? 18 : 22, parent)))
+          .when(!tree || !stock, el => el.child(
+            tree ? this.spaceAvatar(w, 18, parent)
+              : h_flex().size(rowAvatarSize).flex_none().items_center().justify_center()
+                .child(this.spaceAvatar(w, rowAvatarSize, parent)),
+          ))
           .child(div().flex_shrink(0).max_w(150).truncate().text_color(t.foreground).child(w.name))
           .child(g ? this.gitTail(g, tree, w.name, t) : div().flex_1()),
       );
