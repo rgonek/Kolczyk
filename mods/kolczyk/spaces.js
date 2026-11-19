@@ -228,16 +228,20 @@ export default class Spaces extends View {
     }
   }
 
-  spaceAvatar(w, size = 22, parent) {
+  iconSource(w, parent) {
     const choices = this.renderIcons ?? shared('kolczyk.spaces') ?? {};
-    if (!choices[w.id] && parent) w = parent;
-    const value = choices[w.id];
-    if (value?.kind === 'herdr') return herdrAvatar(w.name, w.id);
-    const key = where(w, this.renderPanes ?? panes());
+    const space = choices[w.id] ? w : parent ?? w;
+    return { space, value: choices[space.id] };
+  }
+
+  spaceAvatar(w, size = 22, parent) {
+    const { space, value } = this.iconSource(w, parent);
+    if (value?.kind === 'herdr') return herdrAvatar(space.name, space.id);
+    const key = where(space, this.renderPanes ?? panes());
     const local = this.iconCache[key];
-    const refreshed = (this.renderFavicons ?? shared('kolczyk.favicons') ?? {})[w.id];
+    const refreshed = (this.renderFavicons ?? shared('kolczyk.favicons') ?? {})[space.id];
     const latest = refreshed?.key === key && refreshed.at > (local?.at ?? 0) ? refreshed : local;
-    return avatar(value, w.name, latest?.path ?? null, size);
+    return avatar(value, space.name, latest?.path ?? null, size);
   }
 
   // Spaces in order, each worktree space moved under its main checkout's.
@@ -390,7 +394,7 @@ export default class Spaces extends View {
 
   row({ w, i, g, tree, parent, folderId }, t) {
     const on = w.active;
-    const stock = (this.renderIcons ?? shared('kolczyk.spaces') ?? {})[w.id]?.kind === 'herdr';
+    const stock = this.iconSource(w, parent).value?.kind === 'herdr';
     return v_flex()
       .relative()
       .id(`space-${w.id}`)
@@ -457,7 +461,7 @@ export default class Spaces extends View {
       .hover((s) => s.bg(t.hover))
       .on_click(() => run("space.select", { id: w.id }))
       .on_mouse_down('right', () => this.menu(w, parent))
-      .child((this.renderIcons ?? shared('kolczyk.spaces') ?? {})[w.id]?.kind === 'herdr'
+      .child(this.iconSource(w, parent).value?.kind === 'herdr'
         ? div().text_color(w.active ? t.foreground : t.muted).child(String(i + 1))
         : this.spaceAvatar(w, 20, parent))
       .child(div().text_color(tone(t, w.status)).child(glyph(w.status)));

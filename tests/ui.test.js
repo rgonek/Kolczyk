@@ -405,6 +405,38 @@ test('worktree follows parent edits until it saves a different icon', async () =
   } finally { state.spaces.pop(); }
 });
 
+test('linked sidebar rows follow a parent Save and Default Herdr reset', () => {
+  const p = picker({ kind: 'emoji', emoji: '🐑' });
+  const parent = state.spaces[0];
+  const linked = { ...parent, id: 'linked', name: 'Branch', folder: 'D:/linked' };
+  const custom = { ...linked, id: 'custom', folder: 'D:/custom' };
+  state.spaces.push(linked, custom);
+  state.shared['kolczyk.spaces'].custom = { kind: 'emoji', emoji: '🔥' };
+  const view = new Spaces();
+  view.init({}, { ...cx, spawn() {} });
+  for (const space of [parent, linked, custom]) {
+    view.git[JSON.stringify([null, space.folder])] = { repo: 'project', name: 'project', linked: space !== parent };
+  }
+  const text = el => typeof el === 'string' ? el : (el?.nodes ?? []).map(text).join('');
+  const rowText = id => text(find(view.render(), 'space-' + id));
+  try {
+    assert.match(rowText(linked.id), /🐑/u);
+    p.draft.emoji = '🚀';
+    p.save();
+    assert.match(rowText(linked.id), /🚀/u);
+    p.draft.kind = 'herdr';
+    p.save();
+    assert.ok(rowText(linked.id).startsWith(linked.name), 'expanded worktree uses the branch-only marker');
+    assert.match(rowText(custom.id), /🔥/u);
+    state.width = 120;
+    assert.ok(rowText(linked.id).startsWith('2'), 'compact worktree uses its own space number');
+    assert.match(rowText(custom.id), /🔥/u);
+  } finally {
+    state.spaces.splice(-2);
+    delete state.width;
+  }
+});
+
 test('sidebar folder creation, membership, folding, deletion and header setting persist', () => {
   picker(null);
   const sidebar = new Kolczyk();
