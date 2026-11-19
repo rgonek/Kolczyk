@@ -6,7 +6,11 @@ export class Element {
     return new Proxy(this, { get: (obj, key, receiver) => {
       if (key in obj) return obj[key];
       return (...args) => {
-        if (String(key).startsWith('on_')) { obj.handlers[key] = args.at(-1); if (key === 'on_change') obj.handlers.on_click = (e, cx) => args.at(-1)(true, cx); }
+        if (String(key).startsWith('on_')) {
+          obj.handlers[key] = args.at(-1);
+          if (typeof args[0] === 'string') obj.handlers[key + '_' + args[0]] = args.at(-1);
+          if (key === 'on_change') obj.handlers.on_click = (e, cx) => args.at(-1)(true, cx);
+        }
         else if (key === 'trigger' || key === 'content') obj.nodes.push(args[0]);
         else obj.values[key] = args;
         return receiver;

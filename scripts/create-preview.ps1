@@ -1,35 +1,66 @@
 param([string]$Output = (Join-Path $PSScriptRoot '../preview.png'))
+
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
-$background = [Drawing.Image]::FromFile((Join-Path $PSScriptRoot '../docs/images/preview-background.png'))
-$picker = [Drawing.Image]::FromFile((Join-Path $PSScriptRoot '../docs/images/picker-emoji.png'))
-$spaces = [Drawing.Image]::FromFile((Join-Path $PSScriptRoot '../docs/images/spaces-custom.png'))
-$canvas = [Drawing.Bitmap]::new(1672, 941)
-$g = [Drawing.Graphics]::FromImage($canvas)
-$g.InterpolationMode = [Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-$g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
-function Draw-Window([Drawing.Image]$Image, [int]$X, [int]$Y, [int]$Width) {
-    $height = [int][Math]::Round($Image.Height * $Width / $Image.Width)
-    $shadow = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(35, 20, 25, 25))
-    $chrome = [Drawing.SolidBrush]::new([Drawing.ColorTranslator]::FromHtml('#f1ece3'))
-    $border = [Drawing.Pen]::new([Drawing.ColorTranslator]::FromHtml('#c1b9ac'))
-    $g.FillRectangle($shadow, $X + 6, $Y + 8, $Width, $height + 34)
-    $g.FillRectangle($chrome, $X, $Y, $Width, 34)
-    for ($i = 0; $i -lt 3; $i++) {
-        $dot = [Drawing.SolidBrush]::new([Drawing.ColorTranslator]::FromHtml(@('#ff6057','#ffbd2e','#28c840')[$i]))
-        $g.FillEllipse($dot, $X + 15 + 22 * $i, $Y + 11, 12, 12)
-        $dot.Dispose()
-    }
-    $g.DrawImage($Image, [Drawing.Rectangle]::new($X, $Y + 34, $Width, $height))
-    $g.DrawRectangle($border, $X, $Y, $Width, $height + 34)
-    $border.Dispose(); $chrome.Dispose(); $shadow.Dispose()
+$images = Join-Path $PSScriptRoot '../docs/images'
+$landscape = [Drawing.Bitmap]::new((Join-Path $images 'gallery-landscape.png'))
+$spaces = [Drawing.Bitmap]::new((Join-Path $images 'gallery-spaces.png'))
+$picker = [Drawing.Bitmap]::new((Join-Path $images 'gallery-icon-picker.png'))
+$canvas = [Drawing.Bitmap]::new(1586, 992)
+$graphics = [Drawing.Graphics]::FromImage($canvas)
+$ink = [Drawing.SolidBrush]::new([Drawing.ColorTranslator]::FromHtml('#10202a'))
+$title = [Drawing.Font]::new('Georgia', 132, [Drawing.FontStyle]::Bold, [Drawing.GraphicsUnit]::Pixel)
+$subtitle = [Drawing.Font]::new('Georgia', 47, [Drawing.FontStyle]::Regular, [Drawing.GraphicsUnit]::Pixel)
+
+function New-RoundedPath([Drawing.Rectangle]$Bounds, [int]$Radius) {
+    $path = [Drawing.Drawing2D.GraphicsPath]::new()
+    $diameter = $Radius * 2
+    $path.AddArc($Bounds.Left, $Bounds.Top, $diameter, $diameter, 180, 90)
+    $path.AddArc(($Bounds.Right - $diameter), $Bounds.Top, $diameter, $diameter, 270, 90)
+    $path.AddArc(($Bounds.Right - $diameter), ($Bounds.Bottom - $diameter), $diameter, $diameter, 0, 90)
+    $path.AddArc($Bounds.Left, ($Bounds.Bottom - $diameter), $diameter, $diameter, 90, 90)
+    $path.CloseFigure()
+    return $path
 }
+
+function Draw-Screenshot([Drawing.Bitmap]$Image, [int]$X, [int]$Y, [int]$Width) {
+    $height = [int][Math]::Round($Image.Height * $Width / $Image.Width)
+    $bounds = [Drawing.Rectangle]::new($X, $Y, $Width, $height)
+    $path = New-RoundedPath $bounds 20
+    $border = [Drawing.Pen]::new([Drawing.Color]::FromArgb(42, 50, 40, 30), 2)
+    try {
+        foreach ($offset in 11, 7, 3) {
+            $shadow = New-RoundedPath ([Drawing.Rectangle]::new(($X + $offset), ($Y + $offset), $Width, $height)) 20
+            $brush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(24, 42, 29, 17))
+            try { $graphics.FillPath($brush, $shadow) }
+            finally { $brush.Dispose(); $shadow.Dispose() }
+        }
+        $state = $graphics.Save()
+        try {
+            $graphics.SetClip($path)
+            $graphics.DrawImage($Image, $bounds)
+        } finally { $graphics.Restore($state) }
+        $graphics.DrawPath($border, $path)
+    } finally { $border.Dispose(); $path.Dispose() }
+}
+
 try {
-    $g.DrawImage($background, [Drawing.Rectangle]::new(0, 0, 1672, 941))
-    Draw-Window $picker 910 66 672
-    Draw-Window $spaces 590 550 300
+    $graphics.InterpolationMode = [Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+    $graphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
+    $graphics.TextRenderingHint = [Drawing.Text.TextRenderingHint]::AntiAliasGridFit
+    $graphics.DrawImage($landscape, [Drawing.Rectangle]::new(0, 0, $canvas.Width, $canvas.Height))
+    $graphics.DrawString('Kolczyk', $title, $ink, 44, 31)
+    $graphics.DrawString('Folders & icons for Herdr', $subtitle, $ink, 64, 184)
+    Draw-Screenshot $spaces 416 348 490
+    Draw-Screenshot $picker 925 148 583
     $canvas.Save([IO.Path]::GetFullPath($Output), [Drawing.Imaging.ImageFormat]::Png)
 } finally {
-    $g.Dispose(); $canvas.Dispose(); $spaces.Dispose(); $picker.Dispose(); $background.Dispose()
+    $subtitle.Dispose()
+    $title.Dispose()
+    $ink.Dispose()
+    $graphics.Dispose()
+    $canvas.Dispose()
+    $picker.Dispose()
+    $spaces.Dispose()
+    $landscape.Dispose()
 }
-Write-Output ([IO.Path]::GetFullPath($Output))

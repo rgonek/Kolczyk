@@ -27,16 +27,13 @@ is required.
 
 Suggested description:
 
-> Give your Herdr spaces recognizable icons and colors. Choose a project favicon, a bundled icon, emoji, initials or your own image, with a native picker and a preview at sidebar size.
+> Group Herdr spaces in collapsible folders, customize their icons and colors, and let worktrees follow their parent project's icon.
 
 Topics: `herdr-mod`, `herdr`, `gpui`, `customization`, `icons`, `windows`, `linux`, `macos`.
 The `herdr-mod` topic is required for directory discovery.
 
-Use `preview.png` as the repository social preview. It combines an illustrated mountain scene with real native picker and sidebar screenshots. The sidebar shows five spaces created for the presentation: Moonshot, Wildflower, Northstar, Field Notes and Campfire. The original screenshots and illustration background are in `docs/images/`. Regenerate the presentation image with:
-
-```powershell
-powershell.exe -NoProfile -File scripts/create-preview.ps1
-```
+Use `preview.png` as the repository social preview. See [Gallery preview](preview.md)
+for the composition, source assets and regeneration command.
 
 ## Before publishing
 

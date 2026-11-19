@@ -83,7 +83,7 @@ test('color swatches and saturation/brightness alternatives are keyboard reachab
   const p = picker(null); p.draft.kind = 'lucide';
   const rendered = p.render();
   assert.equal(find(rendered, 'ki-color-0').type, 'button');
-  assert.match(find(rendered, 'ki-color-0').values.accessibility_label[0], /Symbol #/);
+  assert.match(find(rendered, 'ki-color-0').values.accessibility_label[0], /Symbol Gray/);
   for (const key of ['saturation', 'brightness']) {
     const slider = find(rendered, `ki-color-${key}`);
     assert.equal(slider.type, 'slider'); assert.equal(slider.values.tab_index[0], 0);
@@ -371,4 +371,149 @@ test('sidebar reads shared icon state once per render regardless of space count'
     assert.equal(counts['kolczyk.spaces'], 1);
     assert.equal(counts['kolczyk.favicons'], 1);
   } finally { state.spaces = original; delete state.sharedReads; }
+});
+
+test('worktree follows parent edits until it saves a different icon', async () => {
+  state.tasks = [];
+  picker({ kind: 'lucide', name: 'folder' });
+  await Promise.all(state.tasks);
+  const parent = state.spaces[0];
+  state.spaces.push({ ...parent, id: 'linked', name: 'Branch', folder: 'D:/linked' });
+  try {
+    state.props = { mode: 'picker', space: 'linked', parent: parent.id };
+    const open = () => { const view = new Picker(); view.init(state.props, cx); return view; };
+    const inherited = open();
+    assert.equal(inherited.draft.name, 'folder');
+    inherited.save();
+    assert.equal(state.shared['kolczyk.spaces'].linked, undefined);
+    state.shared['kolczyk.spaces'][parent.id].name = 'folder-code';
+    const custom = open();
+    assert.equal(custom.draft.name, 'folder-code');
+    custom.draft.name = 'rocket';
+    custom.save();
+    state.shared['kolczyk.spaces'][parent.id].name = 'folder-open';
+    assert.equal(open().draft.name, 'rocket');
+    open().inherit();
+    assert.equal(open().draft.name, 'folder-open');
+    await Promise.all(state.tasks);
+  } finally { state.spaces.pop(); }
+});
+
+test('sidebar folder creation, membership, folding, deletion and header setting persist', () => {
+  picker(null);
+  const sidebar = new Kolczyk();
+  state.props = {};
+  sidebar.init(state.props, { ...cx, spawn() {} });
+  sidebar.shown.add('local-space');
+  const click = (node, id) => find(node, id).handlers.on_click({}, cx);
+  const dialog = options => {
+    state.props = { mode: 'folders', ...options };
+    const view = new Kolczyk();
+    view.init(state.props, cx);
+    return view.render().render();
+  };
+  const empty = sidebar.render();
+  assert.ok(find(empty, 'folder-new'));
+  assert.ok(find(empty, 'space-local-space'));
+  const create = dialog({ action: 'new', space: 'local-space' });
+  find(create, 'kf-name').input.set_value('Projects');
+  click(create, 'kf-save');
+  const { id } = state.shared['kolczyk.folders'].folders[0];
+  const moveMenu = dialog({ action: 'move', space: 'local-space' });
+  assert.equal(find(moveMenu, 'kf-create').values.h[0], find(moveMenu, 'kf-move-' + id).values.h[0]);
+  assert.equal(moveMenu.nodes.length, 3, 'short move menu contains only its action rows');
+  assert.equal(state.shared['kolczyk.folders'].membership['local-space'], id);
+  state.props = { mode: 'picker', folder: id };
+  const folderPicker = new Picker();
+  folderPicker.init(state.props, cx);
+  assert.ok(find(folderPicker.render(), 'ki-icon-folder'));
+  assert.ok(find(folderPicker.render(), 'ki-icon-folder-code'));
+
+  const root = state.spaces[0];
+  const worktree = { ...root, id: 'linked' };
+  const rows = [{ w: root, i: 0 }, { w: worktree, i: 1, parent: root }];
+  const grouped = sidebar.folderRows(rows, null, {}, false, row => row.w.id);
+  assert.deepEqual(grouped.slice(1).map(row => row.nodes[0]), ['local-space', 'linked']);
+  assert.ok(find(grouped[1], 'folder-child-local-space'));
+  for (const library of ['lucide', 'feather', 'hugeicons']) {
+    folderPicker.draft.library = library;
+    const filled = find(folderPicker.render(), 'ki-icon-folder-filled');
+    assert.match(filled.values.tooltip[0], /unofficial Kolczyk variant/);
+    filled.handlers.on_click({}, cx);
+    assert.equal(folderPicker.draft.name, 'folder-filled');
+  }
+  folderPicker.save();
+  assert.equal(state.shared['kolczyk.folders'].folders[0].appearance.library, 'hugeicons');
+  assert.equal(find(folderPicker.render(), 'ki-next'), null);
+  const settings = dialog({ action: 'settings' });
+  click(settings, 'kf-show-button');
+  assert.equal(find(sidebar.render(), 'folder-new'), null);
+  click(dialog({ action: 'settings' }), 'kf-show-button');
+  click(sidebar.render(), id);
+  assert.equal(find(sidebar.render(), 'space-local-space'), null);
+  click(dialog({ action: 'settings' }), 'kf-show-button');
+  assert.equal(find(sidebar.render(), 'folder-new'), null);
+  click(dialog({ action: 'menu', folder: id }), 'kf-remove');
+  assert.ok(find(sidebar.render(), 'space-local-space'));
+  click(dialog({ action: 'settings' }), 'kf-show-button');
+  assert.ok(find(sidebar.render(), 'folder-new'));
+  state.tasks = [];
+});
+
+test('saved swatch and shape become defaults for a different space', async () => {
+  const first = picker(null);
+  first.draft.kind = 'lucide';
+  find(first.render(), 'ki-color-11').handlers.on_click({}, cx);
+  first.draft.background = '#112233';
+  first.draft.shape = 'circle';
+  first.save();
+  await Promise.all(state.tasks);
+  const other = { ...state.spaces[0], id: 'other', name: 'Other' };
+  state.spaces.push(other);
+  try {
+    state.props = { mode: 'picker', space: other.id };
+    const next = new Picker();
+    next.init(state.props, cx);
+    assert.equal(next.draft.colorSwatch, 'Blue');
+    assert.equal(next.draft.background, '#112233');
+    assert.equal(next.draft.shape, 'circle');
+    await Promise.all(state.tasks);
+  } finally { state.spaces.pop(); }
+});
+
+test('dropping between rows moves spaces into and out of folders', () => {
+  picker(null);
+  const source = state.spaces[0];
+  const target = { ...source, id: 'target', name: 'Target' };
+  state.spaces.push(target);
+  try {
+    state.shared['kolczyk.folders'] = {
+      folders: [{ id: 'folder-test', name: 'Test', machine: null }],
+      membership: { target: 'folder-test' },
+    };
+    const sidebar = new Spaces();
+    sidebar.init({}, { ...cx, spawn() {} });
+    sidebar.shown.add(source.id);
+    sidebar.shown.add(target.id);
+    const rows = sidebar.render();
+    find(rows, 'space-' + source.id).handlers.on_mouse_down_left({}, cx);
+    const destination = find(rows, 'space-target');
+    destination.handlers.on_mouse_move({}, cx);
+    destination.handlers.on_mouse_up({}, cx);
+    assert.equal(state.shared['kolczyk.folders'].membership[source.id], 'folder-test');
+    assert.deepEqual(state.commands.at(-1), { name: 'space.move', args: { id: source.id, index: 2 } });
+
+    const outside = { ...source, id: 'outside', name: 'Outside' };
+    state.spaces.push(outside);
+    try {
+      sidebar.shown.add(outside.id);
+      const updated = sidebar.render();
+      find(updated, 'space-' + source.id).handlers.on_mouse_down_left({}, cx);
+      const outsideRow = find(updated, 'space-outside');
+      outsideRow.handlers.on_mouse_move({}, cx);
+      outsideRow.handlers.on_mouse_up({}, cx);
+      assert.equal(state.shared['kolczyk.folders'].membership[source.id], undefined);
+      assert.deepEqual(state.commands.at(-1), { name: 'space.move', args: { id: source.id, index: 3 } });
+    } finally { state.spaces.pop(); }
+  } finally { state.spaces.pop(); }
 });

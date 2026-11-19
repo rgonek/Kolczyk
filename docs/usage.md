@@ -152,3 +152,11 @@ resolved `$extends` inheritance, and the public Hugeicons index at
 categories mapped from matching Lucide names, with Other for unmatched icons;
 this is not a separate official Feather taxonomy. No metadata is downloaded at
 runtime. The development generator is [`scripts/build-metadata.mjs`](../scripts/build-metadata.mjs).
+
+## Folders and worktree icons
+
+Click the folder button next to **New space** to make an empty folder. Right-click a space and choose **Move to folder…** to assign it or create a folder and move it in one step. You can also drag a space onto a folder header. Click the header to fold it and right-click to rename it, choose its icon and color, or remove it. Right-click **Spaces** to toggle **Show New Folder button**.
+
+A worktree starts with the icon of the main checkout space shown above it. Saving a different appearance makes it specific to that worktree. Choose **Use parent icon** to resume inheritance.
+
+For a space without its own style, the picker starts with the last saved symbol color, background and shape. Named swatches adapt when you switch themes. A color typed as a HEX value stays literal.

@@ -1,5 +1,6 @@
 import { div, svg, image } from 'gpui-kit';
 import { h_flex } from 'gpui-base';
+import { swatchColor } from './color.js';
 import { appearance } from './model.js';
 import { shared, theme } from 'herdr';
 
@@ -13,7 +14,10 @@ export function herdrAvatar(name, space, size = 18) {
 }
 
 export function avatar(value, name, automatic, size = 22) {
-  const a = appearance(value, name, automatic, size);
+  const surface = value?.colorSwatch || value?.backgroundSwatch ? theme().chrome : undefined;
+  const background = swatchColor(value?.backgroundSwatch, surface) ?? value?.background;
+  const color = swatchColor(value?.colorSwatch, background ?? surface) ?? value?.color;
+  const a = appearance({ ...value, ...(color && { color }), ...(background && { background }) }, name, automatic, size);
   const glyphSize = size * a.scale;
   const content = a.kind === 'lucide'
     ? svg(`mods/kolczyk/${a.library === 'lucide' ? 'icons' : `icons-${a.library}`}/${a.name}.svg`).size(glyphSize * 0.68).text_color(a.foreground)

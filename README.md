@@ -1,18 +1,28 @@
-# Kolczyk - Space icons
+# Kolczyk - Space folders & icons
 
-Give your Herdr spaces icons and colors you can recognize while switching
-between projects. Use a project's own favicon, pick a symbol from the bundled
-icon libraries, or choose an emoji, initials or an image of your own. Kolczyk
-shows your choices in the spaces sidebar and compact rail.
+Organize your projects in Herdr's Spaces sidebar. Create collapsible folders,
+drag spaces between them, and choose an icon and color for each folder.
+Kolczyk starts with an ungrouped list until you create your first folder.
 
-Right-click a space and choose **Change icon…** to open the native picker.
-Try a background color and shape, then adjust the symbol's size and position
-with a preview of how it will look in the sidebar. Save when it looks right,
-or cancel to keep the icon you had.
+Give each space a project favicon, a bundled icon, an emoji, initials or your
+own image. Worktrees follow their parent space's icon and can have an icon
+of their own. The native picker remembers your last color, background and
+shape for spaces you haven't customized yet.
 
-![Kolczyk's native picker beside spaces named Moonshot, Wildflower, Northstar, Field Notes and Campfire with custom icons](preview.png)
+![Kolczyk with the Studio and Infrastructure folders and the Ledger API icon picker](preview.png)
 
-*Real native picker and sidebar screenshots, arranged on an illustrated background.*
+*Native Herdr screenshots with sample projects, arranged over an illustrated mountain landscape.*
+
+## Organize the sidebar
+
+- Click the folder button beside **New space**, or right-click a space and
+  choose **Move to folder…**.
+- Drop a space on a folder header or between its rows. Drop it between
+  ungrouped spaces to move it back to the main list.
+- Click a folder to collapse it. Right-click it to rename it or change its
+  appearance. Right-click **Spaces** to hide or show the folder button.
+- Right-click a worktree and choose **Change icon…** to make it distinct.
+  **Use parent icon** restores inheritance.
 
 ## Choose how each space looks
 
@@ -21,7 +31,7 @@ or cancel to keep the icon you had.
 - Browse Lucide, Feather and Hugeicons Free, with offline
   search, categories and a Popular shortlist. Or use an emoji, a one- or
   two-character monogram, or your own image.
-- Choose colors and a circle, square or rounded-square
+- Choose from 18 theme-aware swatches or enter a HEX color. Pick a circle, square or rounded-square
   background. Adjust the symbol's size and position while previewing it at
   sidebar size.
 - The picker follows Herdr's theme and works with both

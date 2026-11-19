@@ -6,8 +6,9 @@
 // switch, right-click for its menu, drag to reorder.
 
 import { View, div, svg } from "gpui-kit";
-import { v_flex, h_flex } from "gpui-base";
+import { Button, v_flex, h_flex } from "gpui-base";
 import { spaces, machines, panes, run, openOverlay, exec, hc, theme, shared, setShared, watchFolder, window, layout } from "herdr";
+import { DEFAULT_FOLDER_ICON, changeFolder, folderDialog, folderState, groupRows, moveToFolder } from './folders.js';
 import { avatar, herdrAvatar } from './avatar.js';
 import { projectAssets } from './assets.js';
 
@@ -202,9 +203,9 @@ export default class Spaces extends View {
     });
   }
 
-  menu(w) {
+  menu(w, parent) {
     // A popup is as tall as its items; height is only the most.
-    openOverlay({ mod: "kolczyk", kind: "popup", width: 220, height: 310, props: { mode: 'menu', tab: "space", target: { id: w.id } } });
+    openOverlay({ mod: "kolczyk", kind: "popup", width: 220, height: 310, props: { mode: 'menu', tab: "space", target: { id: w.id, parent: parent?.id } } });
   }
 
   refreshIcons(sp, cx) {
@@ -227,8 +228,10 @@ export default class Spaces extends View {
     }
   }
 
-  spaceAvatar(w, size = 22) {
-    const value = (this.renderIcons ?? shared('kolczyk.spaces') ?? {})[w.id];
+  spaceAvatar(w, size = 22, parent) {
+    const choices = this.renderIcons ?? shared('kolczyk.spaces') ?? {};
+    if (!choices[w.id] && parent) w = parent;
+    const value = choices[w.id];
     if (value?.kind === 'herdr') return herdrAvatar(w.name, w.id);
     const key = where(w, this.renderPanes ?? panes());
     const local = this.iconCache[key];
@@ -253,9 +256,37 @@ export default class Spaces extends View {
       if (!r.g || r.g.linked || placed.has(r.g.repo)) continue;
       placed.add(r.g.repo);
       const kids = list.filter((k) => nested(k) && k.g.repo === r.g.repo);
-      kids.forEach((k, n) => out.push({ ...k, tree: n === kids.length - 1 ? "└─" : "├─" }));
+      kids.forEach((k, n) => out.push({ ...k, parent: r.w, tree: n === kids.length - 1 ? "└─" : "├─" }));
     }
     return out;
+  }
+
+  folderRows(rows, machine, t, collapsed, draw) {
+    const { folders, membership } = folderState();
+    const { groups, ungrouped } = groupRows(rows, folders, membership, machine);
+    return [...groups.flatMap(({ folder, rows }) => {
+      const header = h_flex().id(folder.id).h(28).flex_none().items_center().gap(5).px(collapsed ? 1 : 6)
+        .rounded(6).cursor_pointer().hover(s => s.bg(t.hover))
+        .on_mouse_down('right', () => folderDialog('menu', { folder: folder.id }, 'popup'))
+        .on_mouse_up('left', (_e, cx) => {
+          if (this.pressed == null) return;
+          const source = this.pressedSpace;
+          this.pressed = null;
+          this.over = null;
+          cx.stop_propagation();
+          this.pressedSpace = null;
+          if (source) moveToFolder(source, folder.id);
+          cx.notify();
+        })
+        .on_click(() => changeFolder(folder.id, { folded: !folder.folded }))
+        .child(avatar(folder.appearance ?? DEFAULT_FOLDER_ICON, folder.name, null, 20))
+        .when(!collapsed, el => el.child(div().flex_1().truncate().child(folder.name))
+          .child(svg(`mods/workspace-chrome/chevron-${folder.folded ? 'right' : 'down'}.svg`).size(11).text_color(t.dim)));
+      return [header, ...(folder.folded ? [] : rows.map(row => {
+        const content = draw({ ...row, folderId: folder.id });
+        return collapsed ? content : div().id('folder-child-' + row.w.id).pl(17).child(content);
+      }))];
+    }), ...ungrouped.map(draw)];
   }
 
   // The rows, under a header per machine once one isn't this computer.
@@ -269,7 +300,10 @@ export default class Spaces extends View {
         || spaces().some(s => (s.machine ?? null) === m && !this.shown.has(s.id));
     };
     const loadingRow = m => div().id(`machine-loading-${m ?? "local"}`).h(28).flex_none().px(8).text_size(12).text_color(t.dim).child(collapsed ? "…" : "Loading…");
-    if (!remote.length) return loading(null) && !rows.length ? [loadingRow(null)] : rows.map(draw);
+    if (!remote.length) {
+      const local = this.folderRows(rows, null, t, collapsed, draw);
+      return local.length ? local : loading(null) ? [loadingRow(null)] : [];
+    }
     const machineNames = [null, ...remote];
     return machineNames.flatMap((m) => {
       const mine = rows.filter((r) => (r.w.machine ?? null) === m);
@@ -294,7 +328,8 @@ export default class Spaces extends View {
         .text_size(12).text_color(t.dim).hover(s => s.bg(t.hover).text_color(t.foreground))
         .on_click(() => run("space.new", m ? { machine: m } : {}))
         .child(svg("mods/workspace-chrome/plus.svg").size(12)).when(!collapsed, el => el.child("New space there"));
-      return [head, ...(folded ? [] : mine.length ? mine.map(draw) : [loading(m) ? loadingRow(m) : empty])];
+      const content = this.folderRows(mine, m, t, collapsed, draw);
+      return [head, ...(folded ? [] : content.length ? content : [loading(m) ? loadingRow(m) : empty])];
     });
   }
 
@@ -320,7 +355,7 @@ export default class Spaces extends View {
       .when(g.behind > 0, (el) => el.child(div().flex_none().text_color(t.ansi1).child(`\u2193${g.behind}`)));
   }
 
-  row({ w, i, g, tree }, t) {
+  row({ w, i, g, tree, parent, folderId }, t) {
     const on = w.active;
     const stock = (this.renderIcons ?? shared('kolczyk.spaces') ?? {})[w.id]?.kind === 'herdr';
     return v_flex()
@@ -341,6 +376,7 @@ export default class Spaces extends View {
       ))
       .on_mouse_down("left", () => {
         this.pressed = i;
+        this.pressedSpace = parent?.id ?? w.id;
         this.over = i;
       })
       .on_mouse_move((_e, cx) => {
@@ -354,25 +390,29 @@ export default class Spaces extends View {
       .on_mouse_up("left", (_e, cx) => {
         const from = this.pressed;
         const over = this.over;
+        const source = this.pressedSpace;
         this.pressed = null;
+        this.pressedSpace = null;
         this.over = null;
-        if (from !== null && over === i && from !== i) run("space.move", { id: spaces()[from].id, index: i + 1 });
-        else if (from === i) run("space.select", { id: w.id });
+        if (source && from !== null && over === i && from !== i) {
+          moveToFolder(source, folderId ?? null);
+          if (source !== (parent?.id ?? w.id)) run("space.move", { id: source, index: i + 1 });
+        } else if (from === i) run("space.select", { id: w.id });
         cx.notify();
       })
-      .on_mouse_down("right", () => this.menu(w))
+      .on_mouse_down("right", () => this.menu(w, parent))
       .child(
         h_flex()
           .gap(9)
           .items_center()
           .when(Boolean(tree), el => el.pl(stock ? 22 : 12).child(svg("mods/workspace-chrome/branch.svg").size(stock ? 13 : 11).text_color(t.dim)))
-          .when(!tree || !stock, el => el.child(this.spaceAvatar(w, tree ? 18 : 22)))
+          .when(!tree || !stock, el => el.child(this.spaceAvatar(w, tree ? 18 : 22, parent)))
           .child(div().flex_shrink(0).max_w(150).truncate().text_color(t.foreground).child(w.name))
           .child(g ? this.gitTail(g, tree, w.name, t) : div().flex_1()),
       );
   }
 
-  compact({ w, i }, t) {
+  compact({ w, i, parent }, t) {
     return h_flex()
       .id(`space-${w.id}`)
       .h(26)
@@ -382,10 +422,10 @@ export default class Spaces extends View {
       .when(w.active, (el) => el.bg(t.raised))
       .hover((s) => s.bg(t.hover))
       .on_click(() => run("space.select", { id: w.id }))
-      .on_mouse_down('right', () => this.menu(w))
+      .on_mouse_down('right', () => this.menu(w, parent))
       .child((this.renderIcons ?? shared('kolczyk.spaces') ?? {})[w.id]?.kind === 'herdr'
         ? div().text_color(w.active ? t.foreground : t.muted).child(String(i + 1))
-        : this.spaceAvatar(w, 20))
+        : this.spaceAvatar(w, 20, parent))
       .child(div().text_color(tone(t, w.status)).child(glyph(w.status)));
   }
 
@@ -410,11 +450,18 @@ export default class Spaces extends View {
     if (changed) setShared("space.colors", kept);
     return v_flex().size_full().min_h(0).bg(t.chrome).text_size(13)
       .child(h_flex().h(31).pl(16).pr(10).items_center().justify_between().text_size(11.5).text_color(t.dim)
-        .when(!collapsed, el => el.child("Spaces"))
+        .on_mouse_down('right', () => folderDialog('settings', {}, 'popup'))
+        .when(!collapsed, el => el.child('Spaces'))
+        .child(h_flex().gap(2).items_center()
+          .when(!collapsed && (folderState().showButton ?? true), el => el.child(
+            Button.new('folder-new').tab_index(0).bg('#00000000').accessibility_label('New folder').tooltip('New folder').size(26).flex_none().flex().items_center().justify_center().rounded(6)
+              .hover(s => s.bg(t.hover).text_color(t.foreground))
+              .on_click(() => folderDialog('new', { machine: spaces().find(s => s.active)?.machine ?? null }))
+              .child(svg('mods/kolczyk/icons/folder-plus.svg').size(13).text_color(t.muted))))
         .child(div().id("space-new").size(26).flex_none().flex().items_center().justify_center().rounded(6).hover(s => s.bg(t.hover).text_color(t.foreground))
-          .on_click(() => run("space.new")).child(svg("mods/workspace-chrome/plus.svg").size(14))))
+          .on_click(() => run("space.new")).child(svg("mods/workspace-chrome/plus.svg").size(14).text_color(t.muted)))))
       .child(v_flex().flex_1().min_h(0).px(8).pb(14).overflow_y_scrollbar().mode("always")
-        .on_mouse_up("left", (_e, cx) => { this.pressed = null; cx.notify(); })
+        .on_mouse_up("left", (_e, cx) => { this.pressed = null; this.pressedSpace = null; cx.notify(); })
         .children(this.grouped(t, collapsed)));
   }
 }

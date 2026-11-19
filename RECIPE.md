@@ -1,6 +1,6 @@
-# Customize space icons & colors
+# Organize spaces with folders & icons
 
-Kolczyk gives your Herdr spaces recognizable icons in both the sidebar and compact rail. Use a project's favicon, search the bundled Lucide, Feather and Hugeicons libraries, or choose an emoji, initials or your own image. Right-click a space to open the picker, choose a background color and shape, and adjust the symbol's size and position with a preview at sidebar size. Changes stay in a draft until you save; Cancel keeps the existing icon. Built-in icons, emoji and initials work without extra tools. Automatic favicon discovery and image import need the optional Node helper; remote spaces support manual choices. Default Herdr restores the stock marker.
+Kolczyk adds collapsible folders and custom icons to Herdr's Spaces sidebar. Create folders as you need them, move spaces by dragging or from their context menu, and give each folder its own icon and color. Pick a project favicon, search the bundled Lucide, Feather and Hugeicons libraries, or choose an emoji, initials or your own image for a space. Worktrees follow the parent space's icon until you choose a different one. The native picker remembers your last color, background and shape for new customizations. Built-in icons, emoji and initials work offline without extra tools. Automatic favicon discovery and image import use the optional Node helper.
 
 ![Kolczyk](preview.png)
 
@@ -12,7 +12,7 @@ rail uses a 20px avatar and the existing attention dot. Right-click opens a
 220px menu. The 520px-wide dialog adapts its height by mode and visible catalogue rows (290–907px, capped to the viewport), with a 48px preview, six mode buttons, scrollable
 content and Cancel / Save at the bottom. It uses the current Herdr theme.
 
-Icons offer Lucide (2292), Feather (287) and Hugeicons Free (6144), with Popular
+Icons offer Lucide, Feather and Hugeicons Free, with Popular
 and All views and search, with 66 results per page and 11 columns. A searchable
 category Popover filters the offline upstream metadata; resolve Lucide's
 `$extends:` references and intersect with installed SVG names. Feather uses
@@ -20,10 +20,16 @@ matching Lucide names, falling back to Other. Each tile previews the chosen
 background; light symbols without a background get a dark catalogue-only backing.
 Emoji has 32 quick choices plus free
 input. Monogram accepts one or two letters or numbers. Image offers up to 200
-project paths, an arbitrary local path and file drop. Every mode offers twelve
-color swatches, free hex input, no background, and three shapes.
+project paths, an arbitrary local path and file drop. Custom icons support 18 theme-aware color swatches, free HEX input, no background, and three shapes. Folder suggestions appear together in the picker, with each library's filled folder labeled as a Kolczyk variant.
 
 ## How it behaves
+
+The first installation starts with an empty folder list. Create a folder from
+the Spaces header or from a space's Move to folder menu. Folders are scoped
+to a machine and remember their appearance, membership and collapsed state.
+Dropping between rows adopts the destination's folder and reorders the space.
+A worktree follows its parent space's folder and effective icon, unless it
+has a saved icon override. Use parent icon clears that override.
 
 Default Herdr restores the shipped single-initial colored 18px tile, the compact
 rail number, and the branch-only worktree marker. Use the shared `space.colors`
@@ -48,9 +54,9 @@ their favicons are not fetched by the local helper.
 One mod `kolczyk`, installed into the existing personal layout's `spaces` block.
 Render the sidebar directly at the mod root: Herdr invalidates that root on
 shared-state changes, whereas a retained child can keep its old icon description
-until a mouse event invalidates it. Keep retained views only for picker/menu roles.
+until a mouse event invalidates it. Keep retained views for dialogs and menus.
 `main.js` routes `props.mode` to sidebar (`spaces.js`), menu (`menu.js`) or picker
-(`picker.js`). Menu props follow stock `{tab, target}`; picker uses `{space}`.
+(`picker.js`), with folder dialogs in `folders.js`. Menu props follow stock `{tab, target}`; picker uses `{space}`.
 `avatar.js` paints the shared appearance model; `model.js` validates choices;
 `assets.js` calls optional `node-helper/main.mjs` with `exec('node', ...)`.
 Without Node or its package dependencies, manual modes work and Automatic/Image

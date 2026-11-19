@@ -1,5 +1,4 @@
 // Pure model shared by native views and tests. No app/runtime dependencies.
-export const COLORS = ['#a78bfa', '#60a5fa', '#22d3ee', '#34d399', '#a3e635', '#facc15', '#fb923c', '#f87171', '#f472b6', '#ffffff', '#94a3b8', '#18181b'];
 export const EMOJIS = ['🐑', '🐏', '💻', '🛠️', '🚀', '🤖', '✨', '⚡', '🌐', '📱', '🖥️', '⌨️', '⚙️', '🗄️', '☁️', '📦', '📚', '🧪', '🔒', '🎮', '🎵', '🎬', '🖼️', '🛍️', '🔥', '💡', '🧩', '📊', '🧠', '🦄', '🐙', '🌱'];
 export const POPULAR = ['folder-code', 'code', 'terminal', 'globe', 'server', 'database', 'bot', 'sparkles', 'smartphone', 'monitor', 'cloud-cog', 'package', 'book-open', 'flask-conical', 'shield-check', 'rocket', 'gamepad-2', 'music', 'image', 'shopping-bag', 'git-branch', 'workflow', 'wrench', 'layers', 'heart', 'star', 'coffee', 'paw-print', 'leaf', 'gem'];
 const hex = /^#[a-f0-9]{6}$/i;

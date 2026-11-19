@@ -1,3 +1,4 @@
+import { folderDialog } from './folders.js';
 // Derived from Herdr spaces 0.1.11 (Apache-2.0). Modified for Kolczyk's
 // Change icon action and picker integration. See root NOTICE.
 // Context menus (Herdr's items). Opened as a popup with
@@ -58,7 +59,8 @@ function items(p, git) {
     case "space":
       return [
         ["Rename", "space.rename", { id: tg.id }],
-        ["Change icon…", "kolczyk.icon", { space: tg.id }],
+        ["Change icon…", "kolczyk.icon", { space: tg.id, parent: tg.parent }],
+        ['Move to folder…', 'kolczyk.folder', { space: tg.parent ?? tg.id, machine: spaces().find(s => s.id === tg.id)?.machine ?? null }],
         ...(git ? [["New worktree", "worktree", { space: tg.id, action: "new" }], ["Open worktree", "worktree", { space: tg.id, action: "open" }]] : []),
         ...(git === "linked" ? [["Remove worktree", "worktree", { space: tg.id, action: "remove" }]] : []),
         ["Close", "space.close", { id: tg.id }],
@@ -76,6 +78,7 @@ function items(p, git) {
 }
 
 function menuIcon(command) {
+  if (command === 'kolczyk.folder') return 'mods/kolczyk/icons/folder.svg';
   if (command === 'kolczyk.icon') return 'mods/kolczyk/icons/image.svg';
   const name = command.endsWith(".close") ? "x" : command.endsWith(".rename") ? "square-pen" : command.endsWith(".new") ? "plus" : command === "worktree" ? "git-branch" : command === "app.help" ? "terminal" : command === "app.theme" ? "settings" : command === "pane.split" ? "panel-right" : command === "pane.zoom" ? "square" : "terminal";
   return `mods/workspace-chrome/${name}.svg`;
@@ -109,7 +112,8 @@ export default class Menu extends View {
     const it = items(props(), this.git)[i];
     if (!it) return;
     closeOverlay(props()?.overlay);
-    if (it[1] === 'kolczyk.icon') openOverlay({ mod: 'kolczyk', kind: 'dialog', width: 520, props: { mode: 'picker', space: it[2].space } });
+    if (it[1] === 'kolczyk.icon') openOverlay({ mod: 'kolczyk', kind: 'dialog', width: 520, props: { mode: 'picker', ...it[2] } });
+    else if (it[1] === 'kolczyk.folder') folderDialog('move', it[2], 'popup');
     else if (it[1] === "worktree") openOverlay({ mod: "worktree", kind: "dialog", ...(it[2].action === "open" ? { width: 560, height: 480 } : { width: 440, height: 260 }), props: it[2] });
     else run(it[1], it[2]);
   }
