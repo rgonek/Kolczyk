@@ -193,12 +193,17 @@ export default class Picker extends View {
       .child(h_flex().gap(3).items_center()
         .when(background, el => el.child(this.button('ki-bg-none', 'None', () => { d.background = null; delete d.backgroundSwatch; }, d.background === null)))
         .children(SWATCHES.map(([name, , , swatch], i) => {
-          const color = swatchColor(name, t.chrome);
           const selected = swatchName(d[key + 'Swatch']) === name;
           return Button.new(`ki-${key}-${i}`).tab_index(0)
             .accessibility_label(`${background ? 'Background' : 'Symbol'} ${name}`).tooltip(name).size(19).flex_none().rounded(4).bg(swatch)
             .border(selected ? 2 : 1).border_color(selected ? t.foreground : t.border).cursor_pointer()
-            .on_click((_e, cx) => { d[key] = color; input.set_value(color); d[key + 'Swatch'] = name; cx.notify(); });
+            .on_click((_e, cx) => {
+              const color = swatchColor(name, theme().chrome);
+              d[key] = color;
+              input.set_value(color);
+              d[key + 'Swatch'] = name;
+              cx.notify();
+            });
         })))
       .child(h_flex().gap(7).items_center()
         .child(this.colorPickers[key].render())
