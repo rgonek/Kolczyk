@@ -25,7 +25,7 @@ export function moveToFolder(space, folder) {
   });
 }
 
-export function groupRows(rows, folders, membership, machine) {
+function groupRows(rows, folders, membership, machine) {
   const groups = new Map(folders.filter(f => f.machine === machine).map(f => [f.id, { folder: f, rows: [] }]));
   const ungrouped = [];
   for (const row of rows) {
@@ -33,6 +33,46 @@ export function groupRows(rows, folders, membership, machine) {
     (group?.rows ?? ungrouped).push(row);
   }
   return { groups: [...groups.values()], ungrouped };
+}
+
+export function orderedEntries(rows, state, machine) {
+  const { groups, ungrouped } = groupRows(rows, state.folders, state.membership, machine);
+  const entries = new Map();
+  for (const row of ungrouped) {
+    const id = row.parent?.id ?? row.w.id;
+    if (!entries.has(id)) entries.set(id, { space: id, rows: [] });
+    entries.get(id).rows.push(row);
+  }
+  const leading = [], trailing = [], before = new Map();
+  for (const group of groups) {
+    // Older folders start at the top. Moved folders follow the live space order.
+    const anchor = group.folder.beforeSpace;
+    if (anchor === undefined) leading.push(group);
+    else if (!entries.has(anchor)) trailing.push(group);
+    else {
+      if (!before.has(anchor)) before.set(anchor, []);
+      before.get(anchor).push(group);
+    }
+  }
+  return [...leading, ...[...entries.values()].flatMap(entry => [
+    ...(before.get(entry.space) ?? []), entry,
+  ]), ...trailing];
+}
+
+export function reorderFolder(id, machine, next) {
+  update(state => {
+    const folder = state.folders.find(f => f.id === id && f.machine === machine);
+    if (!folder) return state;
+    const folders = state.folders.filter(f => f !== folder);
+    const index = next?.folder ? folders.findIndex(f => f.id === next.folder.id && f.machine === machine) : -1;
+    if (next?.folder && index === -1) return state;
+    const moved = { ...folder };
+    const anchor = index === -1 ? next?.space ?? null : folders[index].beforeSpace;
+    if (anchor === undefined) delete moved.beforeSpace;
+    else moved.beforeSpace = anchor;
+    folders.splice(index === -1 ? folders.length : index, 0, moved);
+    return { ...state, folders };
+  });
 }
 
 export function changeFolder(id, change) {

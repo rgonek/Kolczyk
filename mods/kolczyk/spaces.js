@@ -8,7 +8,7 @@
 import { View, div, svg } from "gpui-kit";
 import { Button, v_flex, h_flex } from "gpui-base";
 import { spaces, machines, panes, run, openOverlay, exec, hc, theme, shared, setShared, watchFolder, window, layout } from "herdr";
-import { DEFAULT_FOLDER_ICON, changeFolder, folderDialog, folderState, groupRows, moveToFolder } from './folders.js';
+import { DEFAULT_FOLDER_ICON, changeFolder, folderDialog, folderState, moveToFolder, orderedEntries, reorderFolder } from './folders.js';
 import { avatar, herdrAvatar } from './avatar.js';
 import { projectAssets } from './assets.js';
 
@@ -262,11 +262,44 @@ export default class Spaces extends View {
   }
 
   folderRows(rows, machine, t, collapsed, draw) {
-    const { folders, membership } = folderState();
-    const { groups, ungrouped } = groupRows(rows, folders, membership, machine);
-    return [...groups.flatMap(({ folder, rows }) => {
+    const entries = orderedEntries(rows, folderState(), machine);
+    const drag = this.folderDrag;
+    const from = drag && drag.machine === machine ? entries.findIndex(entry => entry.folder?.id === drag.id) : -1;
+    return entries.map(({ folder, space, rows }, index) => {
+      const id = folder ? 'folder-entry-' + folder.id : 'space-entry-' + space;
+      const entry = v_flex().id(id).relative().flex_none()
+        .when(from === index && drag.over, el => el.opacity(0.5))
+        .when(from >= 0 && from !== index && drag.over === id, el => el.child(
+          div().absolute().left(0).right(0).h(2).bg(t.accent)
+            .when(from < index, line => line.bottom(0))
+            .when(from > index, line => line.top(0))))
+        .on_mouse_move((_e, cx) => {
+          const active = this.folderDrag;
+          if (!active) return;
+          const over = active.machine === machine && active.id !== folder?.id ? id : null;
+          if (active.over === over) return;
+          active.over = over;
+          cx.notify();
+        })
+        .on_mouse_up('left', (_e, cx) => {
+          const active = this.folderDrag;
+          if (!active) return;
+          this.folderDrag = null;
+          cx.stop_propagation();
+          const source = entries.findIndex(entry => entry.folder?.id === active.id);
+          if (active.machine === machine && active.over === id && source >= 0 && source !== index) {
+            reorderFolder(active.id, machine, entries[index + (source < index ? 1 : 0)]);
+          }
+          cx.notify();
+        });
+      if (!folder) return entry.children(rows.map(draw));
       const header = h_flex().id(folder.id).h(28).flex_none().items_center().gap(5).px(collapsed ? 1 : 6)
         .rounded(6).cursor_pointer().hover(s => s.bg(t.hover))
+        .on_mouse_down('left', () => {
+          this.pressed = null;
+          this.pressedSpace = null;
+          this.folderDrag = { id: folder.id, machine, over: null };
+        })
         .on_mouse_down('right', () => folderDialog('menu', { folder: folder.id }, 'popup'))
         .on_mouse_up('left', (_e, cx) => {
           if (this.pressed == null) return;
@@ -282,11 +315,11 @@ export default class Spaces extends View {
         .child(avatar(folder.appearance ?? DEFAULT_FOLDER_ICON, folder.name, null, 20))
         .when(!collapsed, el => el.child(div().flex_1().truncate().child(folder.name))
           .child(svg(`mods/workspace-chrome/chevron-${folder.folded ? 'right' : 'down'}.svg`).size(11).text_color(t.dim)));
-      return [header, ...(folder.folded ? [] : rows.map(row => {
+      return entry.child(header).children(folder.folded ? [] : rows.map(row => {
         const content = draw({ ...row, folderId: folder.id });
         return collapsed ? content : div().id('folder-child-' + row.w.id).pl(17).child(content);
-      }))];
-    }), ...ungrouped.map(draw)];
+      }));
+    });
   }
 
   // The rows, under a header per machine once one isn't this computer.
@@ -375,6 +408,7 @@ export default class Spaces extends View {
           .when(this.pressed > i, line => line.top(0)),
       ))
       .on_mouse_down("left", () => {
+        this.folderDrag = null;
         this.pressed = i;
         this.pressedSpace = parent?.id ?? w.id;
         this.over = i;
@@ -461,7 +495,12 @@ export default class Spaces extends View {
         .child(div().id("space-new").size(26).flex_none().flex().items_center().justify_center().rounded(6).hover(s => s.bg(t.hover).text_color(t.foreground))
           .on_click(() => run("space.new")).child(svg("mods/workspace-chrome/plus.svg").size(14).text_color(t.muted)))))
       .child(v_flex().flex_1().min_h(0).px(8).pb(14).overflow_y_scrollbar().mode("always")
-        .on_mouse_up("left", (_e, cx) => { this.pressed = null; this.pressedSpace = null; cx.notify(); })
+        .on_mouse_up("left", (_e, cx) => {
+          this.pressed = null;
+          this.pressedSpace = null;
+          this.folderDrag = null;
+          cx.notify();
+        })
         .children(this.grouped(t, collapsed)));
   }
 }

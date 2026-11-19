@@ -439,8 +439,8 @@ test('sidebar folder creation, membership, folding, deletion and header setting 
   const worktree = { ...root, id: 'linked' };
   const rows = [{ w: root, i: 0 }, { w: worktree, i: 1, parent: root }];
   const grouped = sidebar.folderRows(rows, null, {}, false, row => row.w.id);
-  assert.deepEqual(grouped.slice(1).map(row => row.nodes[0]), ['local-space', 'linked']);
-  assert.ok(find(grouped[1], 'folder-child-local-space'));
+  assert.deepEqual(grouped[0].nodes.slice(1).map(row => row.nodes[0]), ['local-space', 'linked']);
+  assert.ok(find(grouped[0], 'folder-child-local-space'));
   for (const library of ['lucide', 'feather', 'hugeicons']) {
     folderPicker.draft.library = library;
     const filled = find(folderPicker.render(), 'ki-icon-folder-filled');
@@ -485,6 +485,42 @@ test('saved swatch and shape become defaults for a different space', async () =>
     assert.equal(next.draft.shape, 'circle');
     await Promise.all(state.tasks);
   } finally { state.spaces.pop(); }
+});
+
+test('folder dragging persists mixed order and moves expanded folders as a block', () => {
+  picker(null);
+  const previous = state.spaces;
+  state.spaces = ['a', 'b', 'child', 'remote'].map(id => ({
+    ...previous[0], id, name: id, machine: id === 'remote' ? 'remote' : null,
+  }));
+  try {
+    state.shared['kolczyk.folders'] = {
+      folders: ['first', 'second'].map(id => ({ id, name: id, machine: null })),
+      membership: { child: 'first' },
+    };
+    const sidebar = new Spaces();
+    sidebar.init({}, { ...cx, spawn() {} });
+    state.spaces.forEach(s => sidebar.shown.add(s.id));
+    const order = () => sidebar.grouped({}, false).map(el => el.values.id?.[0]);
+    const drag = (source, target) => {
+      const view = sidebar.render();
+      find(view, source).handlers.on_mouse_down_left({}, cx);
+      find(view, target).handlers.on_mouse_move({}, cx);
+      find(view, target).handlers.on_mouse_up({}, cx);
+    };
+    assert.deepEqual(order().slice(1, 5), ['folder-entry-first', 'folder-entry-second', 'space-entry-a', 'space-entry-b']);
+    drag('first', 'space-entry-a');
+    assert.deepEqual(order().slice(1, 5), ['folder-entry-second', 'space-entry-a', 'folder-entry-first', 'space-entry-b']);
+    drag('second', 'folder-entry-first');
+    assert.deepEqual(order().slice(1, 5), ['space-entry-a', 'folder-entry-first', 'folder-entry-second', 'space-entry-b']);
+    drag('first', 'space-entry-remote');
+    assert.deepEqual(order().slice(1, 5), ['space-entry-a', 'folder-entry-first', 'folder-entry-second', 'space-entry-b']);
+    assert.equal(state.shared['kolczyk.folders'].membership.child, 'first');
+    assert.ok(find(find(sidebar.render(), 'folder-entry-first'), 'space-child'));
+  } finally {
+    state.spaces = previous;
+    delete state.shared['kolczyk.folders'];
+  }
 });
 
 test('dropping between rows moves spaces into and out of folders', () => {
