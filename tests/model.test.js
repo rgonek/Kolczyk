@@ -112,3 +112,25 @@ test('an incomplete color edit preserves the chosen symbol, background and trans
   assert.match(preview.foreground, /^#[a-f0-9]{6}$/i);
   assert.equal(d.color, 'qq');
 });
+
+test('appearance sanitizes malformed fields and non-ASCII monograms without mutating input', () => {
+  const broken = {
+    kind: 'lucide', library: 'unknown', name: 'BAD NAME', emoji: 'nope', text: ' ą7 ',
+    color: 'not-hex', background: 'bad', shape: 'triangle', image: 'D:/nope.png',
+    adjustments: { 'lucide:folder-code': { x: 99, y: 0, scale: 999 } },
+    emojiOffsets: { '🐑': { x: 99, y: 0 } },
+  };
+  const snapshot = structuredClone(broken);
+  const a = appearance(broken, 'Łódź App', null, 22);
+  assert.deepEqual(broken, snapshot);
+  assert.equal(a.kind, 'lucide');
+  assert.equal(a.library, 'lucide');
+  assert.equal(a.name, 'folder-code');
+  assert.equal(a.text, 'Ą7');
+  assert.equal(a.foreground, '#a78bfa');
+  assert.equal(a.background, null);
+  assert.equal(a.offsetX, 0);
+  assert.equal(a.scale, 1);
+  assert.equal(appearance({ kind: 'monogram', text: 'INVALID' }, 'Łódź App', null, 22).text, 'ŁA');
+  assert.equal(appearance({ kind: 'image', image: 'D:/nope.png' }, 'Łódź App', null, 22).kind, 'monogram');
+});

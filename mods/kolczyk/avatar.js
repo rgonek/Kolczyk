@@ -6,18 +6,21 @@ import { shared, theme } from 'herdr';
 
 const MARK = { ansi6: '#22a99a', ansi3: '#e3814f', ansi4: '#5b8def', ansi5: '#8b7cf6', ansi2: '#3fae6a', ansi1: '#d9649a' };
 
-export function herdrAvatar(name, space, size = 18) {
-  const color = (shared('space.colors') ?? {})[space] ?? 'ansi6';
-  const fill = color.startsWith('#') ? color : MARK[color] ?? theme()[color];
+export function herdrAvatar(name, space, size = 18, t, spaceColors) {
+  const color = (spaceColors ?? shared('space.colors') ?? {})[space] ?? 'ansi6';
+  const fill = color.startsWith('#') ? color : MARK[color] ?? (t ?? theme())[color];
   return h_flex().size(size).flex_none().rounded(size * 5 / 18).bg(fill).items_center().justify_center()
     .text_size(size * 10.5 / 18).font_bold().text_color('#ffffff').child([...String(name ?? '')][0]?.toUpperCase() ?? '?');
 }
 
-export function avatar(value, name, automatic, size = 22) {
-  const surface = value?.colorSwatch || value?.backgroundSwatch ? theme().chrome : undefined;
+export function avatar(value, name, automatic, size = 22, surfaceColor) {
+  const surface = value?.colorSwatch || value?.backgroundSwatch ? (surfaceColor ?? theme().chrome) : undefined;
   const background = swatchColor(value?.backgroundSwatch, surface) ?? value?.background;
   const color = swatchColor(value?.colorSwatch, background ?? surface) ?? value?.color;
-  const a = appearance({ ...value, ...(color && { color }), ...(background && { background }) }, name, automatic, size);
+  const resolved = color !== value?.color || background !== value?.background
+    ? { ...value, ...(color && { color }), ...(background && { background }) }
+    : value;
+  const a = appearance(resolved, name, automatic, size);
   const glyphSize = size * a.scale;
   const content = a.kind === 'lucide'
     ? svg(`mods/kolczyk/${a.library === 'lucide' ? 'icons' : `icons-${a.library}`}/${a.name}.svg`).size(glyphSize * 0.68).text_color(a.foreground)

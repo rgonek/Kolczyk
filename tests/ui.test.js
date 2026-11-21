@@ -366,17 +366,50 @@ test('root rerender after Save updates sidebar without a child mouse event', () 
   assert.ok(text(root.render(rootCx)).includes('🚀'), 'shared-state root rerender must show saved icon immediately');
 });
 
-test('sidebar reads shared icon state once per render regardless of space count', () => {
-  const original = state.spaces;
-  state.spaces = Array.from({ length: 30 }, (_, i) => ({ id: `budget-${i}`, name: `Project ${i}`, folder: `D:/p${i}`, tabs: [] }));
-  const counts = {};
-  state.sharedReads = counts;
+test('sidebar reads live state snapshots once per render regardless of space, folder or machine count', () => {
+  const originalSpaces = state.spaces;
+  const originalShared = state.shared;
+  const originalPanes = state.panes;
+  state.spaces = Array.from({ length: 30 }, (_, i) => ({
+    id: `budget-${i}`, name: `Project ${i}`, folder: `D:/p${i}`,
+    machine: i < 15 ? null : 'remote',
+    tabs: [{ id: `tb-${i}` }],
+  }));
+  state.panes = state.spaces.map((s, i) => ({ pane: `p-${i}`, tab: `tb-${i}`, cwd: s.folder }));
+  state.shared = {
+    'kolczyk.spaces': Object.fromEntries(state.spaces.map((s, i) => [s.id, i % 5 === 0
+      ? { kind: 'herdr' }
+      : { kind: 'lucide', library: 'lucide', name: 'folder-cog', color: '#4a5565', colorSwatch: 'Gray', shape: 'rounded', background: null, text: 'PR' }])),
+    'kolczyk.folders': {
+      folders: [
+        { id: 'f-local', machine: null, name: 'Local', appearance: { kind: 'lucide', library: 'lucide', name: 'folder', colorSwatch: 'Gray' } },
+        { id: 'f-remote', machine: 'remote', name: 'Remote', appearance: { kind: 'lucide', library: 'lucide', name: 'folder', colorSwatch: 'Violet' } },
+      ],
+      membership: { 'budget-0': 'f-local', 'budget-15': 'f-remote' },
+    },
+    'space.colors': Object.fromEntries(state.spaces.map(s => [s.id, 'ansi6'])),
+  };
+  const sharedCounts = {};
+  const hostCounts = {};
   try {
-    const view = new Spaces(); view.init({}, cx);
+    const view = new Spaces(); view.init({}, { ...cx, spawn() {} });
+    state.sharedReads = sharedCounts;
+    state.hostReads = hostCounts;
     view.render();
-    assert.equal(counts['kolczyk.spaces'], 1);
-    assert.equal(counts['kolczyk.favicons'], 1);
-  } finally { state.spaces = original; delete state.sharedReads; }
+    assert.equal(sharedCounts['kolczyk.spaces'], 1);
+    assert.equal(sharedCounts['kolczyk.favicons'], 1);
+    assert.equal(sharedCounts['kolczyk.folders'], 1);
+    assert.equal(sharedCounts['space.colors'], 1);
+    assert.equal(hostCounts.spaces, 1);
+    assert.equal(hostCounts.panes, 1);
+    assert.equal(hostCounts.theme, 1);
+  } finally {
+    state.spaces = originalSpaces;
+    state.shared = originalShared;
+    state.panes = originalPanes;
+    delete state.sharedReads;
+    delete state.hostReads;
+  }
 });
 
 test('worktree follows parent edits until it saves a different icon', async () => {

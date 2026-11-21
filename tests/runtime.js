@@ -48,10 +48,11 @@ export const InputState = { new: ({ value = '' } = {}) => {
 export const props = () => state.props;
 export const shared = key => { if (state.sharedReads) state.sharedReads[key] = (state.sharedReads[key] ?? 0) + 1; return structuredClone(state.shared[key]); };
 export const setShared = (key, value) => { state.shared[key] = structuredClone(value); };
-export const spaces = () => state.spaces;
-export const panes = () => [];
-export const machines = () => [];
-export const theme = () => new Proxy({}, { get: () => '#888888' });
+const countRead = name => { if (state.hostReads) state.hostReads[name] = (state.hostReads[name] ?? 0) + 1; };
+export const spaces = () => { countRead('spaces'); return state.spaces; };
+export const panes = () => { countRead('panes'); return state.panes ?? []; };
+export const machines = () => { countRead('machines'); return []; };
+export const theme = () => { countRead('theme'); return new Proxy({}, { get: () => '#888888' }); };
 export const window = () => ({ active: true, platform: 'windows' });
 export const layout = () => ({ id: 'sidebar', size: { px: state.width ?? 268 } });
 export const appHome = () => 'C:/app';

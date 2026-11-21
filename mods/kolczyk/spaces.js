@@ -35,6 +35,19 @@ const rowPadding = 8;
 const rowGap = 9;
 const rowAvatarSize = 22;
 const where = (s, ps) => JSON.stringify([s.machine ?? null, place(s, ps)]);
+function whereMap(sp, ps) {
+  const tabToSpace = new Map();
+  for (const s of sp) for (const c of s.tabs ?? []) tabToSpace.set(c.id, s.id);
+  const cwdBySpace = new Map();
+  for (const p of ps) {
+    if (!p.cwd) continue;
+    const id = tabToSpace.get(p.tab);
+    if (id && !cwdBySpace.has(id)) cwdBySpace.set(id, p.cwd);
+  }
+  const out = new Map();
+  for (const s of sp) out.set(s.id, JSON.stringify([s.machine ?? null, cwdBySpace.get(s.id) || s.folder]));
+  return out;
+}
 const base = (path) => path.replace(/\/+$/, "").split("/").pop();
 // Changes made outside Herdr (an editor's save, a commit in another app): looked
 // for this often, in repos the list shows, while the window is in front.
@@ -239,20 +252,21 @@ export default class Spaces extends View {
 
   spaceAvatar(w, size = 22, parent) {
     const { space, value } = this.iconSource(w, parent);
-    if (value?.kind === 'herdr') return herdrAvatar(space.name, space.id);
-    const key = where(space, this.renderPanes ?? panes());
+    if (value?.kind === 'herdr') return herdrAvatar(space.name, space.id, 18, this.renderTheme, this.renderSpaceColors);
+    const key = this.renderWhere?.get(space.id) ?? where(space, this.renderPanes ?? panes());
     const local = this.iconCache[key];
     const refreshed = (this.renderFavicons ?? shared('kolczyk.favicons') ?? {})[space.id];
     const latest = refreshed?.key === key && refreshed.at > (local?.at ?? 0) ? refreshed : local;
-    return avatar(value, space.name, latest?.path ?? null, size);
+    return avatar(value, space.name, latest?.path ?? null, size, this.renderTheme?.chrome);
   }
 
   // Spaces in order, each worktree space moved under its main checkout's.
   ordered() {
-    const sp = spaces(), ps = this.renderPanes ?? panes();
-    const ready = (w) => this.shown.has(w.id) || where(w, ps) in this.git || Date.now() - (this.born[w.id] ??= Date.now()) > 1500;
+    const sp = this.renderSpaces ?? spaces(), ps = this.renderPanes ?? panes();
+    const keyOf = (w) => this.renderWhere?.get(w.id) ?? where(w, ps);
+    const ready = (w) => this.shown.has(w.id) || keyOf(w) in this.git || Date.now() - (this.born[w.id] ??= Date.now()) > 1500;
     for (const w of sp) if (!this.shown.has(w.id) && ready(w)) this.shown.add(w.id);
-    const list = sp.map((w, i) => ({ w, i, g: this.git[where(w, ps)] ?? null })).filter((r) => this.shown.has(r.w.id));
+    const list = sp.map((w, i) => ({ w, i, g: this.git[keyOf(w)] ?? null })).filter((r) => this.shown.has(r.w.id));
     const mains = new Set(list.filter((r) => r.g && !r.g.linked).map((r) => r.g.repo));
     const nested = (r) => r.g?.linked && mains.has(r.g.repo);
     const out = [];
@@ -269,7 +283,7 @@ export default class Spaces extends View {
   }
 
   folderRows(rows, machine, t, collapsed, draw) {
-    const entries = orderedEntries(rows, folderState(), machine);
+    const entries = orderedEntries(rows, this.renderFolders ?? folderState(), machine);
     const drag = this.folderDrag;
     const from = drag && drag.machine === machine ? entries.findIndex(entry => entry.folder?.id === drag.id) : -1;
     return entries.map(({ folder, space, rows }, index) => {
@@ -321,7 +335,7 @@ export default class Spaces extends View {
           cx.notify();
         })
         .on_click(() => changeFolder(folder.id, { folded: !folder.folded }))
-        .child(avatar(folder.appearance ?? DEFAULT_FOLDER_ICON, folder.name, null, collapsed ? 20 : rowAvatarSize))
+        .child(avatar(folder.appearance ?? DEFAULT_FOLDER_ICON, folder.name, null, collapsed ? 20 : rowAvatarSize, t?.chrome))
         .when(!collapsed, el => el.child(div().flex_1().truncate().text_color(t.foreground).child(folder.name))
           .child(svg(`mods/workspace-chrome/chevron-${folder.folded ? 'right' : 'down'}.svg`).size(11).text_color(t.dim)));
       return entry.child(header).children(folder.folded ? [] : rows.map(row => {
@@ -333,13 +347,16 @@ export default class Spaces extends View {
 
   // The rows, under a header per machine once one isn't this computer.
   grouped(t, collapsed) {
+    const sp = this.renderSpaces ?? spaces();
     const rows = this.ordered();
     const draw = (r) => (collapsed ? this.compact(r, t) : this.row(r, t));
     const remote = [...new Set([...rows.map(r => r.w.machine).filter(Boolean), ...this.machines.map(m => m.name)])].sort();
+    let machineList;
     const loading = m => {
-      const layout = machines().find(k => k.name === m)?.layout;
+      machineList ??= machines();
+      const layout = machineList.find(k => k.name === m)?.layout;
       return layout === "loading" || (!layout && this.machines.some(k => k.name === m && k.state === "connected"))
-        || spaces().some(s => (s.machine ?? null) === m && !this.shown.has(s.id));
+        || sp.some(s => (s.machine ?? null) === m && !this.shown.has(s.id));
     };
     const loadingRow = m => div().id(`machine-loading-${m ?? "local"}`).h(28).flex_none().px(8).text_size(12).text_color(t.dim).child(collapsed ? "…" : "Loading…");
     if (!remote.length) {
@@ -478,42 +495,64 @@ export default class Spaces extends View {
 
   render() {
     // Herdr copies live data on every read; share one snapshot across all rows.
-    this.renderIcons = shared('kolczyk.spaces') ?? {};
-    this.renderFavicons = shared('kolczyk.favicons') ?? {};
-    this.renderPanes = panes();
     const t = theme();
     const collapsed = narrow();
     const palette = ["ansi6", "ansi3", "ansi4", "ansi5", "ansi2", "ansi1"];
     const sp = spaces();
+    const ps = panes();
+    const folders = folderState();
     const ids = new Set(sp.map(p => p.id));
-    const kept = Object.fromEntries(Object.entries(shared("space.colors") ?? {}).filter(([id]) => ids.has(id)));
-    let changed = Object.keys(kept).length !== Object.keys(shared("space.colors") ?? {}).length;
-    for (const p of sp) {
-      if (kept[p.id] || p.name === "~") continue;
-      const uses = c => Object.values(kept).filter(v => v === c).length;
-      kept[p.id] = palette.reduce((best, c) => uses(c) < uses(best) ? c : best);
-      changed = true;
+    const rawColors = shared("space.colors") ?? {};
+    const rawKeys = Object.keys(rawColors);
+    const kept = {};
+    let keptCount = 0;
+    for (const id of rawKeys) {
+      if (ids.has(id)) { kept[id] = rawColors[id]; keptCount++; }
+    }
+    let changed = keptCount !== rawKeys.length;
+    if (sp.some(p => !kept[p.id] && p.name !== "~")) {
+      const counts = Object.fromEntries(palette.map(c => [c, 0]));
+      for (const v of Object.values(kept)) if (v in counts) counts[v]++;
+      for (const p of sp) {
+        if (kept[p.id] || p.name === "~") continue;
+        const best = palette.reduce((a, b) => counts[b] < counts[a] ? b : a);
+        kept[p.id] = best;
+        counts[best]++;
+        changed = true;
+      }
     }
     if (changed) setShared("space.colors", kept);
-    return v_flex().size_full().min_h(0).bg(t.chrome).text_size(13)
-      .child(h_flex().h(31).pl(16).pr(10).items_center().justify_between().text_size(11.5).text_color(t.dim)
-        .on_mouse_down('right', () => folderDialog('settings', {}, 'popup'))
-        .when(!collapsed, el => el.child('Spaces'))
-        .child(h_flex().gap(2).items_center()
-          .when(!collapsed && (folderState().showButton ?? true), el => el.child(
-            Button.new('folder-new').tab_index(0).bg('#00000000').accessibility_label('New folder').tooltip('New folder').size(26).flex_none().flex().items_center().justify_center().rounded(6)
-              .hover(s => s.bg(t.hover).text_color(t.foreground))
-              .on_click(() => folderDialog('new', { machine: spaces().find(s => s.active)?.machine ?? null }))
-              .child(svg('mods/kolczyk/icons/folder-plus.svg').size(13).text_color(t.muted))))
-        .child(div().id("space-new").size(26).flex_none().flex().items_center().justify_center().rounded(6).hover(s => s.bg(t.hover).text_color(t.foreground))
-          .on_click(() => run("space.new")).child(svg("mods/workspace-chrome/plus.svg").size(14).text_color(t.muted)))))
-      .child(v_flex().flex_1().min_h(0).px(8).pb(14).overflow_y_scrollbar().mode("always")
-        .on_mouse_up("left", (_e, cx) => {
-          this.pressed = null;
-          this.pressedSpace = null;
-          this.folderDrag = null;
-          cx.notify();
-        })
-        .children(this.grouped(t, collapsed)));
+    this.renderIcons = shared('kolczyk.spaces') ?? {};
+    this.renderFavicons = shared('kolczyk.favicons') ?? {};
+    this.renderFolders = folders;
+    this.renderPanes = ps;
+    this.renderSpaces = sp;
+    this.renderWhere = whereMap(sp, ps);
+    this.renderTheme = t;
+    this.renderSpaceColors = kept;
+    try {
+      return v_flex().size_full().min_h(0).bg(t.chrome).text_size(13)
+        .child(h_flex().h(31).pl(16).pr(10).items_center().justify_between().text_size(11.5).text_color(t.dim)
+          .on_mouse_down('right', () => folderDialog('settings', {}, 'popup'))
+          .when(!collapsed, el => el.child('Spaces'))
+          .child(h_flex().gap(2).items_center()
+            .when(!collapsed && (folders.showButton ?? true), el => el.child(
+              Button.new('folder-new').tab_index(0).bg('#00000000').accessibility_label('New folder').tooltip('New folder').size(26).flex_none().flex().items_center().justify_center().rounded(6)
+                .hover(s => s.bg(t.hover).text_color(t.foreground))
+                .on_click(() => folderDialog('new', { machine: spaces().find(s => s.active)?.machine ?? null }))
+                .child(svg('mods/kolczyk/icons/folder-plus.svg').size(13).text_color(t.muted))))
+          .child(div().id("space-new").size(26).flex_none().flex().items_center().justify_center().rounded(6).hover(s => s.bg(t.hover).text_color(t.foreground))
+            .on_click(() => run("space.new")).child(svg("mods/workspace-chrome/plus.svg").size(14).text_color(t.muted)))))
+        .child(v_flex().flex_1().min_h(0).px(8).pb(14).overflow_y_scrollbar().mode("always")
+          .on_mouse_up("left", (_e, cx) => {
+            this.pressed = null;
+            this.pressedSpace = null;
+            this.folderDrag = null;
+            cx.notify();
+          })
+          .children(this.grouped(t, collapsed)));
+    } finally {
+      this.renderIcons = this.renderFavicons = this.renderFolders = this.renderPanes = this.renderSpaces = this.renderWhere = this.renderTheme = this.renderSpaceColors = null;
+    }
   }
 }

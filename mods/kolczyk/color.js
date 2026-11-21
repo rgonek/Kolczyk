@@ -1,12 +1,13 @@
+const hexPattern = /^#[a-f0-9]{6}$/i;
 const clamp = v => Math.max(0, Math.min(1, v));
+const channel = v => (v /= 255) <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
 export function luminance(hex) {
-  if (!/^#[a-f0-9]{6}$/i.test(hex ?? '')) return 0;
-  const rgb = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
-    .map(v => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
-  return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+  if (typeof hex !== 'string' || !hexPattern.test(hex)) return 0;
+  const n = parseInt(hex.slice(1), 16);
+  return channel(n >> 16) * 0.2126 + channel((n >> 8) & 255) * 0.7152 + channel(n & 255) * 0.0722;
 }
 export function contrastBacking(foreground, background) {
-  if (!/^#[a-f0-9]{6}$/i.test(foreground ?? '') || !/^#[a-f0-9]{6}$/i.test(background ?? '')) return null;
+  if (typeof foreground !== 'string' || typeof background !== 'string' || !hexPattern.test(foreground) || !hexPattern.test(background)) return null;
   const a = luminance(foreground), b = luminance(background);
   if ((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) >= 3) return null;
   return (a + 0.05) / 0.05 >= 1.05 / (a + 0.05) ? '#000000' : '#ffffff';
@@ -18,7 +19,7 @@ export function hsvToHex(h, s, v) {
   return '#' + rgb.map(n => Math.round((n + m) * 255).toString(16).padStart(2, '0')).join('');
 }
 export function hexToHsv(hex) {
-  if (!/^#[a-f0-9]{6}$/i.test(hex ?? '')) return { h: 260, s: 0.5, v: 0.9 };
+  if (typeof hex !== 'string' || !hexPattern.test(hex)) return { h: 260, s: 0.5, v: 0.9 };
   const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
   const max = Math.max(r, g, b), min = Math.min(r, g, b), delta = max - min;
   const h = !delta ? 0 : max === r ? 60 * (((g - b) / delta) % 6) : max === g ? 60 * ((b - r) / delta + 2) : 60 * ((r - g) / delta + 4);
@@ -47,6 +48,9 @@ export const SWATCHES = [
   ['Rose', '#ec003f', '#ff637e', '#ff2056'],
 ];
 
+const SWATCH_MAP = new Map(SWATCHES.map(entry => [entry[0], entry]));
+const swatchCache = new Map();
+
 export function swatchName(name) {
   if (name === 'Gold') return 'Amber';
   if (name === 'Slate') return 'Gray';
@@ -54,23 +58,34 @@ export function swatchName(name) {
 }
 
 export function swatchColor(name, surface) {
-  const swatch = SWATCHES.find(([label]) => label === swatchName(name));
+  const label = swatchName(name);
+  const swatch = SWATCH_MAP.get(label);
   if (!swatch) return undefined;
+  const key = `${label}\0${surface ?? ''}`;
+  const cached = swatchCache.get(key);
+  if (cached !== undefined) return cached;
   const [, dark, light] = swatch;
   const base = luminance(surface);
-  const contrast = color => {
-    const value = luminance(color);
-    return (Math.max(value, base) + 0.05) / (Math.min(value, base) + 0.05);
-  };
-  const color = contrast(dark) >= contrast(light) ? dark : light;
-  if (contrast(color) >= 3) return color;
-  const target = contrast('#000000') >= contrast('#ffffff') ? 0 : 255;
-  for (let step = 1; step <= 10; step++) {
-    const blend = '#' + [1, 3, 5].map(i => {
-      const channel = parseInt(color.slice(i, i + 2), 16);
-      return Math.round(channel + (target - channel) * step / 10).toString(16).padStart(2, '0');
-    }).join('');
-    if (contrast(blend) >= 3) return blend;
+  const ratio = value => (Math.max(value, base) + 0.05) / (Math.min(value, base) + 0.05);
+  const darkContrast = ratio(luminance(dark));
+  const lightContrast = ratio(luminance(light));
+  const color = darkContrast >= lightContrast ? dark : light;
+  let result = color;
+  if (Math.max(darkContrast, lightContrast) < 3) {
+    const target = ratio(0) >= ratio(1) ? 0 : 255;
+    const n = parseInt(color.slice(1), 16);
+    const r0 = n >> 16, g0 = (n >> 8) & 255, b0 = n & 255;
+    for (let step = 1; step <= 10; step++) {
+      const r = Math.round(r0 + (target - r0) * step / 10);
+      const g = Math.round(g0 + (target - g0) * step / 10);
+      const b = Math.round(b0 + (target - b0) * step / 10);
+      if (ratio(channel(r) * 0.2126 + channel(g) * 0.7152 + channel(b) * 0.0722) >= 3) {
+        result = '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
+        break;
+      }
+    }
   }
-  return color;
+  if (swatchCache.size > 512) swatchCache.clear();
+  swatchCache.set(key, result);
+  return result;
 }
